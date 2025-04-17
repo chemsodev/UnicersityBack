@@ -1,20 +1,31 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { AuthGuard } from './auth.guard';
+import { Etudiant } from '../etudiant/etudiant.entity';
+import { Enseignant } from '../enseignant/enseignant.entity';
+import { Administrateur } from '../administrateur/administrateur.entity';
 
 @Module({
-  providers: [AuthService],
-  controllers: [AuthController],
-  imports: [ConfigModule, JwtModule.registerAsync({
-    imports: [ConfigModule],
-    useFactory: async (configService: ConfigService) => ({
-      secret: configService.get('JWT_SECRET'),
-      signOptions: { expiresIn: configService.get('JWT_EXPIRATION_TIME') },
+  imports: [
+    ConfigModule.forRoot(),
+    TypeOrmModule.forFeature([Etudiant, Enseignant, Administrateur]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRATION_TIME') || '60m',
+        },
+      }),
+      inject: [ConfigService],
     }),
-    inject: [ConfigService]
-  })],
-  exports: [AuthModule, JwtModule],
+  ],
+  providers: [AuthService, AuthGuard],
+  controllers: [AuthController],
+  exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}

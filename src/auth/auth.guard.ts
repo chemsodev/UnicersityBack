@@ -1,51 +1,38 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Observable } from 'rxjs';
-import { AdminRole } from 'src/user.entity';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
-    constructor(
-        private configService: ConfigService,
-        private jwtService: JwtService,
-    ) { }
+export class AuthGuard {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly jwtService: JwtService,
+  ) {}
 
-    canActivate(context: ExecutionContext): boolean {
-        const request = context.switchToHttp().getRequest();
-        const token = this.extractTokenFromHeader(request);
-
-        if (!token) {
-            throw new UnauthorizedException('Token not found');
-        }
-
-        try {
-            const payload = this.jwtService.verify(token, {
-                secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
-            });
-
-            request.user = payload;
-        } catch (err) {
-            throw new UnauthorizedException('Invalid token');
-        }
-
-        return true;
+  canActivate(context: any): boolean {
+    const req = context.switchToHttp().getRequest();
+    const token = this.extractTokenFromHeader(req);
+    
+    if (!token) {
+      throw new UnauthorizedException('Missing Bearer token');
     }
 
-    private extractTokenFromHeader(request: any): string | null {
-        const [type, token] = request.headers.authorization?.split(' ') ?? [];
-        return type === 'Bearer' ? token : null;
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+      req.user = payload;
+      return true;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
     }
-}
+  }
 
-declare global {
-    namespace Express {
-        export interface Request {
-            user?: {
-                sub: string;
-                email: string;
-                role: AdminRole
-            };
-        }
-    }
+  private extractTokenFromHeader(req: any): string | null {
+    const auth = req.headers.authorization;
+    if (!auth) return null;
+    
+    const [scheme, token] = auth.split(' ');
+    return scheme === 'Bearer' ? token : null;
+  }
 }
