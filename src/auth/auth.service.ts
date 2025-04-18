@@ -1,3 +1,4 @@
+// auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,7 +8,7 @@ import { Etudiant } from '../etudiant/etudiant.entity';
 import { Enseignant } from '../enseignant/enseignant.entity';
 import { Administrateur } from '../administrateur/administrateur.entity';
 import { LoginDto } from './dto/login.dto';
-import { ConfigService } from '@nestjs/config';
+import { AdminRole } from '../user.entity';
 
 @Injectable()
 export class AuthService {
@@ -19,10 +20,12 @@ export class AuthService {
     @InjectRepository(Administrateur)
     private readonly adminRepo: Repository<Administrateur>,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService, // Add this line
-  ) {}
+  ) { }
 
-  private async validate(repo: Repository<any>, dto: LoginDto) {
+  private async validateUser(
+    repo: Repository<any>,
+    dto: LoginDto
+  ) {
     const user = await repo.findOne({
       where: { email: dto.email },
       select: ['id', 'email', 'password'],
@@ -35,47 +38,43 @@ export class AuthService {
   }
 
   async loginEtudiant(dto: LoginDto) {
-    const user = await this.validate(this.etudiantRepo, dto);
-    return this.generateToken(user.id, user.email, 'etudiant');
+    const user = await this.validateUser(this.etudiantRepo, dto);
+    return this.generateToken({
+      userId: user.id,
+      email: user.email,
+      role: 'etudiant', // Now as simple string since not in AdminRole
+      userType: 'etudiant'
+    });
   }
 
   async loginEnseignant(dto: LoginDto) {
-    const user = await this.validate(this.enseignantRepo, dto);
-    return this.generateToken(user.id, user.email, 'enseignant');
+    const user = await this.validateUser(this.enseignantRepo, dto);
+    return this.generateToken({
+      userId: user.id,
+      email: user.email,
+      role: 'enseignant', // Now as simple string
+      userType: 'enseignant'
+    });
   }
 
   async loginAdministrateur(dto: LoginDto) {
-    const admin = await this.validate(this.adminRepo, dto);
-    const payload = { 
-      sub: admin.id,
+    const admin = await this.validateUser(this.adminRepo, dto);
+    return this.generateToken({
+      userId: admin.id,
       email: admin.email,
-      type: 'administrateur',
-      ...(admin.adminRole && { adminRole: admin.adminRole })
-    };
+      role: admin.adminRole, // Uses AdminRole enum
+      userType: 'administrateur'
+    });
+  }
+
+  private generateToken(payload: {
+    userId: string;
+    email: string;
+    role: string | AdminRole; // Role can be string or AdminRole
+    userType: string;
+  }) {
     return {
       access_token: this.jwtService.sign(payload),
-      user: payload
     };
-  }
-
-  private generateToken(sub: number, email: string, type: string) {
-    const payload = { sub, email, type };
-    return {
-      access_token: this.jwtService.sign(payload, {
-        secret: this.configService.get('JWT_SECRET'),
-        expiresIn: this.configService.get('JWT_EXPIRATION_TIME') || '60m'
-      }),
-      user: payload
-    };
-  }
-
-  async verifyToken(token: string) {
-    try {
-      return await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get('JWT_SECRET')
-      });
-    } catch (error) {
-      throw new UnauthorizedException('Invalid token');
-    }
   }
 }

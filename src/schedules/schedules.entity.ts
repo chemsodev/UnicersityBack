@@ -8,7 +8,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 @Entity({ name: 'schedules' })
 export class Schedule {
     @PrimaryGeneratedColumn()
-    id: number;
+    id: string;
 
     @Column({ length: 20 })
     day: string;

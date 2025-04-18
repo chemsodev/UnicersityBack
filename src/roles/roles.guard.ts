@@ -1,11 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from 'src/roles/roles.decorator'; // Import ROLES_KEY
-import { AdminRole } from 'src/user.entity';
-
+import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { AdminRole } from "src/user.entity";
+import { ROLES_KEY } from "./roles.decorator";
 @Injectable()
 export class RolesGuard implements CanActivate {
-    constructor(private readonly reflector: Reflector) { }
+    constructor(private reflector: Reflector) { }
 
     canActivate(context: ExecutionContext): boolean {
         const requiredRoles = this.reflector.get<AdminRole[]>(ROLES_KEY, context.getHandler());
@@ -15,11 +14,13 @@ export class RolesGuard implements CanActivate {
 
         const request = context.switchToHttp().getRequest();
         const user = request.user;
-
-        if (!user || !user.role) {
-            return false; 
+        if (user.userType === 'etudiant') {
+            return true;
+        }
+        if (user.userType === 'administrateur') {
+            return requiredRoles.includes(user.role as AdminRole);
         }
 
-        return requiredRoles.includes(user.role);
+        return false;
     }
 }

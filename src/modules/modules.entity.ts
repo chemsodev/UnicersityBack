@@ -7,7 +7,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, JoinTabl
 @Entity({ name: 'study_modules' })
 export class StudyModule {
     @PrimaryGeneratedColumn()
-    id: number;
+    id: string;
 
     @Column({ length: 100 })
     title: string;

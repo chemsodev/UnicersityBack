@@ -23,7 +23,7 @@ export enum AdminRole {
 @TableInheritance({ column: { type: 'varchar', name: 'type' } })
 export abstract class User {
     @PrimaryGeneratedColumn()
-    id: number;
+    id: string;
 
     @Column({ length: 100 })
     firstName: string;

@@ -6,7 +6,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 @Entity({ name: 'notes' })
 export class Note {
     @PrimaryGeneratedColumn()
-    id: number;
+    id: string;
 
     @Column({ type: 'decimal', precision: 5, scale: 2 })
     value: number;
