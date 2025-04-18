@@ -7,6 +7,7 @@ import { Etudiant } from '../etudiant/etudiant.entity';
 import { Enseignant } from '../enseignant/enseignant.entity';
 import { Administrateur } from '../administrateur/administrateur.entity';
 import { LoginDto } from './dto/login.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     @InjectRepository(Administrateur)
     private readonly adminRepo: Repository<Administrateur>,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService, // Add this line
   ) {}
 
   private async validate(repo: Repository<any>, dto: LoginDto) {
@@ -45,17 +47,35 @@ export class AuthService {
   async loginAdministrateur(dto: LoginDto) {
     const admin = await this.validate(this.adminRepo, dto);
     const payload = { 
-      sub: admin.id, 
-      email: admin.email, 
+      sub: admin.id,
+      email: admin.email,
       type: 'administrateur',
       ...(admin.adminRole && { adminRole: admin.adminRole })
     };
-    return { access_token: this.jwtService.sign(payload) };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: payload
+    };
   }
 
   private generateToken(sub: number, email: string, type: string) {
+    const payload = { sub, email, type };
     return {
-      access_token: this.jwtService.sign({ sub, email, type }),
+      access_token: this.jwtService.sign(payload, {
+        secret: this.configService.get('JWT_SECRET'),
+        expiresIn: this.configService.get('JWT_EXPIRATION_TIME') || '60m'
+      }),
+      user: payload
     };
+  }
+
+  async verifyToken(token: string) {
+    try {
+      return await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get('JWT_SECRET')
+      });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 }

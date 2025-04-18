@@ -1,38 +1,30 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { Request } from 'express';
 
 @Injectable()
-export class AuthGuard {
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly jwtService: JwtService,
-  ) {}
+export class AuthGuard implements CanActivate {
+  constructor(private readonly authService: AuthService) {}
 
-  canActivate(context: any): boolean {
-    const req = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(req);
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = this.extractTokenFromHeader(request);
     
     if (!token) {
       throw new UnauthorizedException('Missing Bearer token');
     }
 
     try {
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get('JWT_SECRET'),
-      });
-      req.user = payload;
-      return true;
+      // Use AuthService's verifyToken method
+      request.user = await this.authService.verifyToken(token);
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
+    return true;
   }
 
-  private extractTokenFromHeader(req: any): string | null {
-    const auth = req.headers.authorization;
-    if (!auth) return null;
-    
-    const [scheme, token] = auth.split(' ');
-    return scheme === 'Bearer' ? token : null;
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
   }
 }

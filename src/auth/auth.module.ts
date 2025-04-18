@@ -26,6 +26,6 @@ import { Administrateur } from '../administrateur/administrateur.entity';
   ],
   providers: [AuthService, AuthGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, AuthGuard],
 })
 export class AuthModule {}
