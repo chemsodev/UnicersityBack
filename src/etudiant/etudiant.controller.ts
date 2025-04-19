@@ -30,7 +30,7 @@ export class EtudiantController {
 
     @Post()
     @UseGuards(RolesGuard)
-    @Roles(AdminRole.SECRETAIRE, AdminRole.AGENT)
+    @Roles(AdminRole.SECRETAIRE)
     @UsePipes(new ValidationPipe({ transform: true }))
     async create(@Body() createEtudiantDto: CreateEtudiantDto) {
         return this.etudiantService.create(createEtudiantDto);
@@ -38,7 +38,7 @@ export class EtudiantController {
 
     @Get()
     @UseGuards(RolesGuard)
-    @Roles(AdminRole.SECRETAIRE, AdminRole.AGENT, AdminRole.CHEF_DE_DEPARTEMENT)
+    @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
     async findAll(
         @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
         @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
@@ -58,7 +58,7 @@ export class EtudiantController {
 
     @Patch(':id')
     @UseGuards(RolesGuard)
-    @Roles(AdminRole.SECRETAIRE, AdminRole.AGENT)
+    @Roles(AdminRole.SECRETAIRE)
     @UsePipes(new ValidationPipe({ transform: true }))
     async update(
         @Param('id') id: string,

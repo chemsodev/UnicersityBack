@@ -18,8 +18,11 @@ export class AuthController {
   }
 
   @Post('administrateur/login')
-  async loginAdministrateur(@Body() loginDto: LoginDto) {
-    return this.authService.loginAdministrateur(loginDto);
+  async loginAdministrateur(
+    @Body() loginDto: LoginDto,
+    @Query('requestedRole') requestedRole?: string
+  ) {
+    return this.authService.loginAdministrateur(loginDto, requestedRole);
   }
 
   @Get('verify')

@@ -24,13 +24,19 @@ export class AuthService {
 
   private async validateUser(
     repo: Repository<any>,
-    dto: LoginDto
+    dto: LoginDto,
+    isAdmin: boolean = false
   ) {
+    const selectFields = ['id', 'email', 'password'];
+    if (isAdmin) {
+      selectFields.push('adminRole');
+    }
+  
     const user = await repo.findOne({
       where: { email: dto.email },
-      select: ['id', 'email', 'password'],
+      select: selectFields,
     });
-
+  
     if (!user || !(await bcrypt.compare(dto.password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -57,16 +63,32 @@ export class AuthService {
     });
   }
 
-  async loginAdministrateur(dto: LoginDto) {
-    const admin = await this.validateUser(this.adminRepo, dto);
-    return this.generateToken({
+  async loginAdministrateur(dto: LoginDto, requestedRole?: string) {
+    const admin = await this.validateUser(this.adminRepo, dto, true);
+    
+    if (!admin.adminRole) {
+      throw new UnauthorizedException('Admin role not assigned');
+    }
+  
+    // Verify the admin has the requested role if specified
+    if (requestedRole && admin.adminRole !== requestedRole) {
+      throw new UnauthorizedException(`You are not authorized as ${requestedRole}`);
+    }
+  
+    const tokenPayload = {
       userId: admin.id,
       email: admin.email,
-      role: admin.adminRole, // Uses AdminRole enum
+      role: admin.adminRole,
       userType: 'administrateur'
-    });
+    };
+    
+    return {
+      access_token: this.jwtService.sign(tokenPayload),
+      adminRole: admin.adminRole,
+      email: admin.email,
+      userId: admin.id
+    };
   }
-
   private generateToken(payload: {
     userId: string;
     email: string;

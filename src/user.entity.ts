@@ -15,7 +15,6 @@ export enum AdminRole {
     DOYEN = 'doyen',
     VICE_DOYEN = 'vice-doyen',
     SECRETAIRE = 'secretaire',
-    AGENT = 'agent',
     ETUDIANT = 'etudiant',
     ENSEIGNANT = 'enseignant',
 }
