@@ -10,14 +10,16 @@ import {
 } from 'typeorm';
 
 export enum AdminRole {
-    CHEF_DE_DEPARTEMENT = 'chef-departement',
+    CHEF_DE_DEPARTEMENT = 'chef-de-departement',
     CHEF_DE_SPECIALITE = 'chef-de-specialite',
     DOYEN = 'doyen',
     VICE_DOYEN = 'vice-doyen',
-    SECRETAIRE = 'secrétaire',
+    SECRETAIRE = 'secretaire',
     AGENT = 'agent',
     ETUDIANT = 'etudiant',
+    ENSEIGNANT = 'enseignant',
 }
+
 
 @Entity({ name: 'users' })
 @TableInheritance({ column: { type: 'varchar', name: 'type' } })

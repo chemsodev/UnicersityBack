@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
@@ -13,8 +13,10 @@ import { Administrateur } from '../administrateur/administrateur.entity';
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([Etudiant, Enseignant, Administrateur]),
-    JwtModule
-  ],
+    JwtModule.register({
+      secret: process.env.JWT_SECRET ,
+      signOptions: { expiresIn: '60h' },
+    }),  ],
   providers: [AuthService, AuthGuard],
   controllers: [AuthController],
   exports: [AuthService, AuthGuard],

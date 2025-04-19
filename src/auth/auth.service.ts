@@ -42,7 +42,7 @@ export class AuthService {
     return this.generateToken({
       userId: user.id,
       email: user.email,
-      role: 'etudiant', // Now as simple string since not in AdminRole
+      role: 'etudiant',
       userType: 'etudiant'
     });
   }
