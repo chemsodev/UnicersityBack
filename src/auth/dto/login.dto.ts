@@ -1,16 +1,45 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, Matches } from 'class-validator';
+import { 
+  IsEmail, 
+  IsNotEmpty, 
+  IsString, 
+  IsOptional, 
+  MaxLength, 
+  Validate, 
+  ValidationArguments, 
+  ValidatorConstraint, 
+  ValidatorConstraintInterface 
+} from 'class-validator';
+
+@ValidatorConstraint({ name: 'hasIdentifier', async: false })
+export class HasIdentifierConstraint implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments) {
+    const object = args.object as LoginDto;
+    return !!object.email || !!object.matricule || !!object.id_enseignant;
+  }
+
+  defaultMessage() {
+    return 'At least one identifier (email, matricule, or teacher ID) must be provided';
+  }
+}
 
 export class LoginDto {
-  @IsEmail({}, { message: 'Format email invalide' })
-  @IsNotEmpty({ message: 'Email requis' })
-  email: string;
+  @Validate(HasIdentifierConstraint)
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
-  @IsString({ message: 'Mot de passe doit être une chaîne de caractères' })
-  @IsNotEmpty({ message: 'Mot de passe requis' })
-  @MinLength(8, { message: 'Mot de passe trop court (8 caractères minimum)' })
-  @MaxLength(32, { message: 'Mot de passe trop long (32 caractères maximum)' })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, {
-    message: 'Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule et 1 chiffre'
-  })
+  @Validate(HasIdentifierConstraint)
+  @IsOptional()
+  @IsString()
+  matricule?: string;
+
+  @Validate(HasIdentifierConstraint)
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  id_enseignant?: string;
+
+  @IsNotEmpty()
+  @IsString()
   password: string;
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, Query, Header, Options, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from './auth.guard';
@@ -28,11 +28,22 @@ export class AuthController {
   @Get('verify')
   @UseGuards(AuthGuard)
   async verifyToken(@Request() req) {
+    if (!req.user) {
+      throw new UnauthorizedException('Invalid token');
+    }
     return {
-      userId: req.user.sub,
+      userId: req.user.userId, // Changed from sub to userId
       email: req.user.email,
-      userType: req.user.type,
-      ...(req.user.adminRole && { adminRole: req.user.adminRole })
+      adminRole: req.user.role, // Key fix: use 'role' from token payload
+      userType: req.user.userType
     };
+  }
+  @Options('*')
+  @Header('Access-Control-Allow-Origin', 'http://localhost:3001')
+  @Header('Access-Control-Allow-Credentials', 'true')
+  @Header('Access-Control-Allow-Headers', 'Authorization, Cache-Control, Content-Type')
+  @Header('Access-Control-Max-Age', '86400') 
+  handleOptions() {
+    return {};
   }
 }

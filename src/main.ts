@@ -1,15 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type,Authorization',
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
+    origin: true, // Explicit frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Authorization',
+      'Content-Type',
+      'Cache-Control',
+      'X-Requested-With'
+    ],
+    exposedHeaders: ['Authorization'],
+    credentials: true
+  });
+  
+  // Add before other middleware
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Headers', 'Authorization, Cache-Control, Content-Type');
+    res.header('Access-Control-Expose-Headers', 'Authorization');
+    next();
   });
   await app.listen(3000);
 }

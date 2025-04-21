@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
@@ -9,7 +9,7 @@ export class AuthGuard {
     private readonly jwtService: JwtService,
   ) {}
 
-  canActivate(context: any): boolean {
+  canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(req);
     
@@ -26,9 +26,8 @@ export class AuthGuard {
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
-  }
-
-  private extractTokenFromHeader(req: any): string | null {
+  } 
+   private extractTokenFromHeader(req: any): string | null {
     const auth = req.headers.authorization;
     if (!auth) return null;
     
