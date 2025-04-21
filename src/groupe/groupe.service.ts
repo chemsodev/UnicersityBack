@@ -3,8 +3,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Groupe, GroupeType } from "./groupe.entity";
 import { Repository } from "typeorm";
 import { Section } from "src/section/section.entity";
-import { CreateGroupeDto } from "./create-groupe.dto";
-import { UpdateGroupeDto } from "./update-groupe.dto";
+import { CreateGroupeDto } from "./dto/create-groupe.dto";
+import { UpdateGroupeDto } from "./dto/update-groupe.dto";
 @Injectable()
 export class GroupeService {
     constructor(

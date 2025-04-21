@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Etudiant } from './etudiant.entity';
 import { Repository, Like } from 'typeorm';
-import { CreateEtudiantDto, UpdateEtudiantDto } from './create-etudiant.dto';
+import { CreateEtudiantDto, UpdateEtudiantDto } from './dto/create-etudiant.dto';
 
 @Injectable()
 export class EtudiantService {

@@ -6,8 +6,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { AdminRole } from '../user.entity';
 import { RolesGuard } from 'src/roles/roles.guard';
 import { Roles } from 'src/roles/roles.decorator';
-import { CreateSectionDto } from './create-section.dto';
-import { UpdateSectionDto } from './update-section.dto';
+import { CreateSectionDto } from './dto/create-section.dto';
+import { UpdateSectionDto } from './dto/update-section.dto';
 
 @Controller('sections')
 @UseGuards(AuthGuard)

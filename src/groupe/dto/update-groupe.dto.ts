@@ -1,6 +1,7 @@
 // src/groupe/dto/update-groupe.dto.ts
 import { IsOptional, IsString, IsEnum, IsUUID, IsInt, Min } from 'class-validator';
-import { GroupeType } from './groupe.entity';
+import { GroupeType } from '../groupe.entity';
+
 
 export class UpdateGroupeDto {
     @IsOptional()

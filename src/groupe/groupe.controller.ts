@@ -5,9 +5,9 @@ import { AuthGuard } from '../auth/auth.guard';
 import { AdminRole } from '../user.entity';
 import { RolesGuard } from 'src/roles/roles.guard';
 import { Roles } from 'src/roles/roles.decorator';
-import { CreateGroupeDto } from './create-groupe.dto';
 import { GroupeType } from './groupe.entity';
-import { UpdateGroupeDto } from './update-groupe.dto';
+import { CreateGroupeDto } from './dto/create-groupe.dto';
+import { UpdateGroupeDto } from './dto/update-groupe.dto';
 
 @Controller('groupes')
 @UseGuards(AuthGuard)

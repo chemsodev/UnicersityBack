@@ -7,8 +7,8 @@ import { Department } from '../departments/departments.entity';
 import { Etudiant } from '../etudiant/etudiant.entity';
 import { Groupe } from '../groupe/groupe.entity';
 import { StudyModule } from '../modules/modules.entity';
-import { CreateSectionDto } from './create-section.dto';
-import { UpdateSectionDto } from './update-section.dto';
+import { CreateSectionDto } from './dto/create-section.dto';
+import { UpdateSectionDto } from './dto/update-section.dto';
 
 @Injectable()
 export class SectionService {

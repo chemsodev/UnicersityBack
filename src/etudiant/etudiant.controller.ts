@@ -16,7 +16,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import { EtudiantService } from './etudiant.service';
-import { CreateEtudiantDto, UpdateEtudiantDto } from './create-etudiant.dto';
+import { CreateEtudiantDto, UpdateEtudiantDto } from './dto/create-etudiant.dto';
 import { Etudiant } from './etudiant.entity';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminRole } from '../user.entity';
@@ -92,11 +92,8 @@ export class EtudiantController {
         @Param('id') id: string,
         @Request() req
     ) {
-        // Students can only view their own schedule
         if (req.user.userType === 'etudiant' && req.user.userId !== id) {
             throw new UnauthorizedException('Vous ne pouvez voir que votre propre emploi du temps');
-        }
-        // Teachers and admins can view any student's schedule
-        return this.etudiantService.getStudentSchedule(id);
+        } return this.etudiantService.getStudentSchedule(id);
     }
 }

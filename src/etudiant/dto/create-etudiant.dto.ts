@@ -85,6 +85,4 @@ import {
   import { PartialType } from '@nestjs/mapped-types';
 
 export class UpdateEtudiantDto extends PartialType(CreateEtudiantDto) {
-  // All fields are optional due to PartialType
-  // Add any update-specific validations if needed
 }
