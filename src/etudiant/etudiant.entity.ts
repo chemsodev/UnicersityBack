@@ -1,9 +1,9 @@
-// etudiant.entity.ts
 import { Note } from 'src/notes/notes.entity';
 import { Schedule } from 'src/schedules/schedules.entity';
 import { Section } from 'src/section/section.entity';
 import { User } from 'src/user.entity';
-import { ChildEntity, Column, ManyToMany, OneToMany, JoinTable } from 'typeorm';
+import { ChildEntity, Column, ManyToMany, OneToMany, JoinTable, ManyToOne } from 'typeorm';
+import { Groupe } from 'src/groupe/groupe.entity';
 
 @ChildEntity('etudiant')
 export class Etudiant extends User {
@@ -42,9 +42,13 @@ export class Etudiant extends User {
     })
     sections: Section[];
 
+    @ManyToOne(() => Groupe)
+    groupe: Groupe;
+
     @OneToMany(() => Note, (note) => note.etudiant)
     notesReleve: Note[];
 
     @OneToMany(() => Schedule, (sched) => sched.etudiant)
     emplois: Schedule[];
 }
+
