@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Etudiant } from './etudiant.entity';
 import { Repository, Like } from 'typeorm';
 import { CreateEtudiantDto, UpdateEtudiantDto } from './dto/create-etudiant.dto';
+import { Schedule } from '../schedules/entities/schedule.entity';
 
 @Injectable()
 export class EtudiantService {
@@ -25,7 +26,7 @@ export class EtudiantService {
         const query = this.etudiantRepo.createQueryBuilder('etudiant')
             .leftJoinAndSelect('etudiant.sections', 'sections')
             .leftJoinAndSelect('etudiant.notesReleve', 'notesReleve')
-            .leftJoinAndSelect('etudiant.emplois', 'emplois')
+            .leftJoinAndSelect('etudiant.schedules', 'schedules')
             .take(limit)
             .skip(skip);
 
@@ -44,7 +45,7 @@ export class EtudiantService {
     async findOne(id: string): Promise<Etudiant> {
         const etudiant = await this.etudiantRepo.findOne({
             where: { id },
-            relations: ['sections', 'notesReleve', 'emplois']
+            relations: ['sections', 'notesReleve', 'schedules']
         });
 
         if (!etudiant) {
@@ -114,7 +115,7 @@ export class EtudiantService {
             await this.etudiantRepo.update(id, updateEtudiantDto);
             const updatedEtudiant = await this.etudiantRepo.findOne({
                 where: { id },
-                relations: ['sections', 'notesReleve', 'emplois']
+                relations: ['sections', 'notesReleve', 'schedules']
             });
 
             if (!updatedEtudiant) {
@@ -151,16 +152,14 @@ export class EtudiantService {
         return etudiant.notesReleve;
     }
 
-    async getStudentSchedule(id: string) {
+    async getSchedules(id: string): Promise<Schedule[]> {
         const etudiant = await this.etudiantRepo.findOne({
             where: { id },
-            relations: ['emplois']
+            relations: ['schedules']
         });
-
         if (!etudiant) {
             throw new NotFoundException(`Étudiant avec l'ID ${id} non trouvé`);
         }
-
-        return etudiant.emplois;
+        return etudiant.schedules;
     }
 }

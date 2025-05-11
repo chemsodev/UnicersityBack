@@ -60,9 +60,18 @@ export class ChangeRequest {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @Column({ nullable: true })
+    responseMessage?: string;
+
+    @Column({ unique: true })
+    requestNumber: string;
+
+    @Column()
+    studentId: string;
 }
 
-import { IsNotEmpty, IsString, IsUUID, IsEnum } from 'class-validator'
+import { IsNotEmpty, IsString, IsUUID, IsEnum, IsOptional } from 'class-validator'
 
 export class CreateChangeRequestDto {
     @IsEnum(RequestType)
@@ -84,4 +93,8 @@ export class CreateChangeRequestDto {
 export class UpdateRequestStatusDto {
     @IsEnum(RequestStatus)
     status: RequestStatus;
+
+    @IsString()
+    @IsOptional()
+    responseMessage?: string;
 }

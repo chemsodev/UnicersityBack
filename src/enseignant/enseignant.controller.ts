@@ -6,16 +6,23 @@ import {
     Param,
     Put,
     Delete,
+    Patch,
+    UseGuards,
 } from '@nestjs/common';
 import { EnseignantService } from './enseignant.service';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 import { Enseignant } from './enseignant.entity';
 import { UpdateEnseignantDto } from './dto/update-enseignant.dto';
 import { AssignModulesDto } from './dto/assign-modules.dto';
-import { Schedule } from 'src/schedules/schedules.entity';
-import { StudyModule } from 'src/modules/modules.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../roles/roles.guard';
+import { Roles } from '../roles/roles.decorator';
+import { AdminRole } from '../user.entity';
+import { Schedule } from '../schedules/entities/schedule.entity';
+import { StudyModule } from '../modules/modules.entity';
 
 @Controller('enseignants')
+@UseGuards(JwtAuthGuard)
 export class EnseignantController {
     constructor(private readonly enseignantService: EnseignantService) { }
 

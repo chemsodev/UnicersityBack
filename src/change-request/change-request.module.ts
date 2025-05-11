@@ -6,16 +6,18 @@ import { ChangeRequestService } from './change-request.service';
 import { ChangeRequest } from './change-request.entity';
 import { Etudiant } from '../etudiant/etudiant.entity';
 import { Section } from '../section/section.entity';
-import { Groupe } from '../groupe/groupe.entity';
+import { Groupe } from '../groupe/entities/groupe.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([ChangeRequest, Etudiant, Section, Groupe]),
-        AuthModule , JwtModule
+        AuthModule , JwtModule, NotificationsModule
     ],
     controllers: [ChangeRequestController],
     providers: [ChangeRequestService],
+    exports: [ChangeRequestService]
 })
 export class ChangeRequestModule { }

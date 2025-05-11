@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Enseignant } from './enseignant.entity';
 import { StudyModule } from '../modules/modules.entity';
-import { Schedule } from '../schedules/schedules.entity';
+import { Schedule } from '../schedules/entities/schedule.entity';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 import { AssignModulesDto } from './dto/assign-modules.dto';
 import { UpdateEnseignantDto } from './dto/update-enseignant.dto';
@@ -26,14 +26,14 @@ export class EnseignantService {
 
     async findAll(): Promise<Enseignant[]> {
         return await this.enseignantRepository.find({
-            relations: ['modules', 'emplois'],
+            relations: ['modules', 'schedules'],
         });
     }
 
     async findOne(id: string): Promise<Enseignant> {
         const enseignant = await this.enseignantRepository.findOne({
             where: { id },
-            relations: ['modules', 'emplois'],
+            relations: ['modules', 'schedules'],
         });
 
         if (!enseignant) {
@@ -46,7 +46,7 @@ export class EnseignantService {
     async findByIdEnseignant(idEnseignant: string): Promise<Enseignant> {
         const enseignant = await this.enseignantRepository.findOne({
             where: { id_enseignant: idEnseignant },
-            relations: ['modules', 'emplois'],
+            relations: ['modules', 'schedules'],
         });
 
         if (!enseignant) {
@@ -97,14 +97,12 @@ export class EnseignantService {
     async getSchedules(id: string): Promise<Schedule[]> {
         const enseignant = await this.enseignantRepository.findOne({
             where: { id },
-            relations: ['emplois'],
+            relations: ['schedules']
         });
-
         if (!enseignant) {
             throw new NotFoundException(`Enseignant with ID ${id} not found`);
         }
-
-        return enseignant.emplois;
+        return enseignant.schedules;
     }
 
     async getModules(id: string): Promise<StudyModule[]> {

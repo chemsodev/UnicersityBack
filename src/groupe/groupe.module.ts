@@ -7,11 +7,13 @@ import { Groupe } from './groupe.entity';
 import { Section } from '../section/section.entity';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Groupe, Section]),
-        AuthModule , JwtModule
+        AuthModule , JwtModule,
+        NotificationsModule
     ],
     controllers: [GroupeController],
     providers: [GroupeService],

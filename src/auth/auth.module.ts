@@ -8,15 +8,18 @@ import { AuthGuard } from './auth.guard';
 import { Etudiant } from '../etudiant/etudiant.entity';
 import { Enseignant } from '../enseignant/enseignant.entity';
 import { Administrateur } from '../administrateur/administrateur.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([Etudiant, Enseignant, Administrateur]),
     JwtModule.register({
-      secret: process.env.JWT_SECRET ,
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '60h' },
-    }),  ],
+    }),
+    NotificationsModule
+  ],
   providers: [AuthService, AuthGuard],
   controllers: [AuthController],
   exports: [AuthService, AuthGuard],

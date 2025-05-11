@@ -1,13 +1,13 @@
-
 import {
     Entity,
     PrimaryGeneratedColumn,
     Column,
     TableInheritance,
-    ChildEntity,
     CreateDateColumn,
     UpdateDateColumn,
+    OneToMany
 } from 'typeorm';
+import { Notification } from './notifications/notification.entity';
 
 export enum AdminRole {
     CHEF_DE_DEPARTEMENT = 'chef-de-departement',
@@ -50,4 +50,7 @@ export abstract class User {
         nullable: true,
     })
     adminRole?: AdminRole;
+
+    @OneToMany(() => Notification, notification => notification.user)
+    notifications: Notification[];
 }

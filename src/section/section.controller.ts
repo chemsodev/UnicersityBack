@@ -1,24 +1,23 @@
 // src/section/section.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { SectionService } from './section.service';
-import { AuthGuard } from '../auth/auth.guard';
-
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../roles/roles.guard';
+import { Roles } from '../roles/roles.decorator';
 import { AdminRole } from '../user.entity';
-import { RolesGuard } from 'src/roles/roles.guard';
-import { Roles } from 'src/roles/roles.decorator';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 
 @Controller('sections')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class SectionController {
   constructor(private readonly sectionService: SectionService) {}
 
   @Post()
   @UseGuards(RolesGuard)
   @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
-  create(@Body() createSectionDto: CreateSectionDto) {
-    return this.sectionService.create(createSectionDto);
+  create(@Body() createSectionDto: CreateSectionDto, @Request() req) {
+    return this.sectionService.create(createSectionDto, req.user.id);
   }
 
   @Get()
@@ -53,8 +52,8 @@ export class SectionController {
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
-  update(@Param('id') id: string, @Body() updateSectionDto: UpdateSectionDto) {
-    return this.sectionService.update(id, updateSectionDto);
+  update(@Param('id') id: string, @Body() updateSectionDto: UpdateSectionDto, @Request() req) {
+    return this.sectionService.update(id, updateSectionDto, req.user.id);
   }
 
   @Delete(':id')

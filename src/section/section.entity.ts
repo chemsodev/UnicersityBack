@@ -1,10 +1,10 @@
-import { ChangeRequest } from 'src/change-request/change-request.entity';
-import { Department } from 'src/departments/departments.entity';
-import { Etudiant } from 'src/etudiant/etudiant.entity';
-import { Groupe } from 'src/groupe/groupe.entity';
-import { StudyModule } from 'src/modules/modules.entity';
-import { Schedule } from 'src/schedules/schedules.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, OneToMany } from 'typeorm';
+import { ChangeRequest } from '../change-request/change-request.entity';
+import { Department } from '../departments/departments.entity';
+import { Etudiant } from '../etudiant/etudiant.entity';
+import { Groupe } from '../groupe/groupe.entity';
+import { StudyModule } from '../modules/modules.entity';
+import { Schedule } from '../schedules/entities/schedule.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity({ name: 'sections' })
 export class Section {
@@ -34,12 +34,41 @@ export class Section {
 
     @ManyToOne(() => Department, (dept) => dept.sections)
     department: Department;
-    @ManyToMany(() => Etudiant, (etudiant) => etudiant.sections)
+
+    @ManyToMany(() => Etudiant, etudiant => etudiant.sections)
+    @JoinTable({
+        name: 'section_etudiants',
+        joinColumn: {
+            name: 'section_id',
+            referencedColumnName: 'id'
+        },
+        inverseJoinColumn: {
+            name: 'etudiant_id',
+            referencedColumnName: 'id'
+        }
+    })
     etudiants: Etudiant[];
 
-    @ManyToMany(() => StudyModule, (module) => module.sections)
+    @ManyToMany(() => StudyModule, module => module.sections)
+    @JoinTable({
+        name: 'section_modules',
+        joinColumn: {
+            name: 'section_id',
+            referencedColumnName: 'id'
+        },
+        inverseJoinColumn: {
+            name: 'module_id',
+            referencedColumnName: 'id'
+        }
+    })
     modules: StudyModule[];
 
-    @OneToMany(() => Schedule, (sched) => sched.section)
-    emplois: Schedule[];
+    @OneToMany(() => Schedule, schedule => schedule.section)
+    schedules: Schedule[];
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }

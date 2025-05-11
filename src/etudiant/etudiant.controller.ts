@@ -18,13 +18,13 @@ import {
 import { EtudiantService } from './etudiant.service';
 import { CreateEtudiantDto, UpdateEtudiantDto } from './dto/create-etudiant.dto';
 import { Etudiant } from './etudiant.entity';
-import { AuthGuard } from '../auth/auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminRole } from '../user.entity';
-import { RolesGuard } from 'src/roles/roles.guard';
-import { Roles } from 'src/roles/roles.decorator';
+import { RolesGuard } from '../roles/roles.guard';
+import { Roles } from '../roles/roles.decorator';
 
 @Controller('etudiants')
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class EtudiantController {
     constructor(private readonly etudiantService: EtudiantService) { }
 
@@ -86,14 +86,12 @@ export class EtudiantController {
         return this.etudiantService.getStudentNotes(id);
     }
 
-    @Get(':id/emplois')
+    @Get(':id/schedule')
     @UseGuards(RolesGuard)
-    async getSchedule(
-        @Param('id') id: string,
-        @Request() req
-    ) {
+    async getSchedule(@Param('id') id: string, @Request() req) {
         if (req.user.userType === 'etudiant' && req.user.userId !== id) {
             throw new UnauthorizedException('Vous ne pouvez voir que votre propre emploi du temps');
-        } return this.etudiantService.getStudentSchedule(id);
+        }
+        return this.etudiantService.getSchedules(id);
     }
 }

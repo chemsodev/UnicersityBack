@@ -10,11 +10,12 @@ import { Groupe } from '../groupe/groupe.entity';
 import { StudyModule } from '../modules/modules.entity';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Section, Department, Etudiant, Groupe, StudyModule]),
-    AuthModule , JwtModule
+    AuthModule , JwtModule, NotificationsModule
   ],
   controllers: [SectionController],
   providers: [SectionService],

@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { StudyModule } from '../modules/modules.entity';
-import { Section } from '../section/section.entity';
-import { Enseignant } from '../enseignant/enseignant.entity';
-import { Etudiant } from '../etudiant/etudiant.entity';
-import { Schedule } from './schedules.entity';
-import { ScheduleController } from './schedules.controller';
+import { Schedule } from './entities/schedule.entity';
+import { SchedulesController } from './schedules.controller';
 import { ScheduleService } from './schedules.service';
+import { Section } from '../section/section.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { SectionModule } from '../section/section.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Schedule, StudyModule, Section, Enseignant, Etudiant])],
-  controllers: [ScheduleController],
-  providers: [ScheduleService],
-  exports: [ScheduleService],
+    imports: [
+        TypeOrmModule.forFeature([Schedule, Section]),
+        NotificationsModule,
+        SectionModule
+    ],
+    controllers: [SchedulesController],
+    providers: [ScheduleService],
+    exports: [ScheduleService]
 })
-export class ScheduleModule { }
+export class SchedulesModule {}

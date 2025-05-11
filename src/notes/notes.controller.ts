@@ -4,43 +4,54 @@ import {
     Post,
     Body,
     Param,
-    Put,
     Delete,
+    Patch,
+    UseGuards,
 } from '@nestjs/common';
 import { Note } from './notes.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { NoteService } from './notes.service';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import { RolesGuard } from '../roles/roles.guard';
+import { Roles } from '../roles/roles.decorator';
+import { AdminRole } from '../user.entity';
 
 @Controller('notes')
+@UseGuards(AuthGuard)
 export class NoteController {
-    constructor(private readonly noteService: NoteService) { }
+    constructor(private readonly noteService: NoteService) {}
 
     @Post()
-    async create(@Body() createNoteDto: CreateNoteDto): Promise<Note> {
+    @UseGuards(RolesGuard)
+    @Roles(AdminRole.ENSEIGNANT)
+    create(@Body() createNoteDto: CreateNoteDto) {
         return this.noteService.create(createNoteDto);
     }
 
     @Get()
-    async findAll(): Promise<Note[]> {
+    @UseGuards(RolesGuard)
+    @Roles(AdminRole.ENSEIGNANT, AdminRole.CHEF_DE_DEPARTEMENT)
+    findAll() {
         return this.noteService.findAll();
     }
 
     @Get(':id')
-    async findOne(@Param('id') id: string): Promise<Note> {
+    findOne(@Param('id') id: string) {
         return this.noteService.findOne(id);
     }
 
-    @Put(':id')
-    async update(
-        @Param('id') id: string,
-        @Body() updateNoteDto: UpdateNoteDto,
-    ): Promise<Note> {
+    @Patch(':id')
+    @UseGuards(RolesGuard)
+    @Roles(AdminRole.ENSEIGNANT)
+    update(@Param('id') id: string, @Body() updateNoteDto: UpdateNoteDto) {
         return this.noteService.update(id, updateNoteDto);
     }
 
     @Delete(':id')
-    async remove(@Param('id') id: string): Promise<void> {
+    @UseGuards(RolesGuard)
+    @Roles(AdminRole.ENSEIGNANT)
+    remove(@Param('id') id: string) {
         return this.noteService.remove(id);
     }
 
@@ -60,5 +71,17 @@ export class NoteController {
         @Param('moduleId') moduleId: string,
     ): Promise<Note[]> {
         return this.noteService.getStudentNotesForModule(studentId, moduleId);
+    }
+
+    @Get('module/:moduleId/statistics')
+    @UseGuards(RolesGuard)
+    @Roles(AdminRole.ENSEIGNANT, AdminRole.CHEF_DE_DEPARTEMENT)
+    async getModuleStatistics(@Param('moduleId') moduleId: string) {
+        return this.noteService.calculateModuleAverage(moduleId);
+    }
+
+    @Get('student/:studentId/average')
+    async getStudentAverage(@Param('studentId') studentId: string) {
+        return this.noteService.calculateStudentAverage(studentId);
     }
 }

@@ -1,7 +1,8 @@
 // src/groupe/groupe.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable } from 'typeorm';
 import { Section } from '../section/section.entity';
 import { ChangeRequest } from '../change-request/change-request.entity';
+import { User } from '../user.entity';
 
 export enum GroupeType {
     TD = 'td',
@@ -36,6 +37,10 @@ export class Groupe {
 
     @OneToMany(() => ChangeRequest, request => request.requestedGroupe)
     changeRequestsTo: ChangeRequest[];
+
+    @ManyToMany(() => User)
+    @JoinTable()
+    etudiants: User[];
 
     @CreateDateColumn()
     createdAt: Date;

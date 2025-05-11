@@ -11,6 +11,6 @@ import { StudyModuleService } from './modules.service';
   imports: [TypeOrmModule.forFeature([StudyModule, Enseignant, Section])],
   controllers: [StudyModuleController],
   providers: [StudyModuleService],
-  exports: [StudyModuleService],
+  exports: [StudyModuleService, TypeOrmModule],
 })
 export class StudyModuleModule { }

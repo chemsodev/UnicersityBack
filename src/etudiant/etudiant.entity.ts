@@ -1,9 +1,9 @@
-import { Note } from 'src/notes/notes.entity';
-import { Schedule } from 'src/schedules/schedules.entity';
-import { Section } from 'src/section/section.entity';
-import { User } from 'src/user.entity';
+import { Note } from '../notes/notes.entity';
+import { Schedule } from '../schedules/entities/schedule.entity';
+import { Section } from '../section/section.entity';
+import { User } from '../user.entity';
 import { ChildEntity, Column, ManyToMany, OneToMany, JoinTable, ManyToOne } from 'typeorm';
-import { Groupe } from 'src/groupe/groupe.entity';
+import { Groupe } from '../groupe/groupe.entity';
 
 @ChildEntity('etudiant')
 export class Etudiant extends User {
@@ -48,7 +48,7 @@ export class Etudiant extends User {
     @OneToMany(() => Note, (note) => note.etudiant)
     notesReleve: Note[];
 
-    @OneToMany(() => Schedule, (sched) => sched.etudiant)
-    emplois: Schedule[];
+    @OneToMany(() => Schedule, schedule => schedule.etudiant)
+    schedules: Schedule[];
 }
 

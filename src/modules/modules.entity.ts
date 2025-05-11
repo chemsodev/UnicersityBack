@@ -1,32 +1,40 @@
-
-import { Enseignant } from 'src/enseignant/enseignant.entity';
-import { Note } from 'src/notes/notes.entity';
-import { Section } from 'src/section/section.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, JoinTable } from 'typeorm';
+import { Enseignant } from '../enseignant/enseignant.entity';
+import { Note } from 'src/notes/notes.entity';
+import { Section } from '../section/section.entity';
 
-@Entity({ name: 'study_modules' })
+@Entity('study_modules')
 export class StudyModule {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ length: 100 })
-    title: string;
+    @Column()
+    name: string;
 
-    @Column({ length: 50 })
-    type: string;
+    @Column()
+    code: string;
 
-    @Column({ type: 'decimal', precision: 3, scale: 2 })
+    @Column()
     coefficient: number;
 
-    @ManyToMany(() => Enseignant, (enseignant) => enseignant.modules)
+    @Column()
+    credits: number;
+
+    @ManyToMany(() => Enseignant, enseignant => enseignant.modules)
+    @JoinTable({
+        name: 'module_enseignants',
+        joinColumn: {
+            name: 'module_id',
+            referencedColumnName: 'id'
+        },
+        inverseJoinColumn: {
+            name: 'enseignant_id',
+            referencedColumnName: 'id'
+        }
+    })
     enseignants: Enseignant[];
 
-    @ManyToMany(() => Section, (section) => section.modules)
-    @JoinTable({
-        name: 'module_sections',
-        joinColumn: { name: 'module_id', referencedColumnName: 'id' },
-        inverseJoinColumn: { name: 'section_id', referencedColumnName: 'id' },
-    })
+    @ManyToMany(() => Section, section => section.modules)
     sections: Section[];
 
     @OneToMany(() => Note, (note) => note.module)

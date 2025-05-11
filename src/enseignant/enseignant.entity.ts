@@ -1,9 +1,7 @@
-
-import { StudyModule } from 'src/modules/modules.entity';
-import { Schedule } from 'src/schedules/schedules.entity';
-import { User } from 'src/user.entity';
-import { ChildEntity, ManyToMany, OneToMany, JoinTable,Column } from 'typeorm';
-
+import { StudyModule } from '../modules/modules.entity';
+import { Schedule } from '../schedules/entities/schedule.entity';
+import { User } from '../user.entity';
+import { ChildEntity, ManyToMany, OneToMany, JoinTable, Column } from 'typeorm';
 
 @ChildEntity('enseignant')
 export class Enseignant extends User {
@@ -17,7 +15,7 @@ export class Enseignant extends User {
     id_enseignant: string;
     @ManyToMany(() => StudyModule, module => module.enseignants)
     @JoinTable({
-        name: 'enseignant_modules',
+        name: 'module_enseignants',
         joinColumn: {
             name: 'enseignant_id',
             referencedColumnName: 'id'
@@ -29,6 +27,6 @@ export class Enseignant extends User {
     })
     modules: StudyModule[];
 
-    @OneToMany(() => Schedule, (sched) => sched.enseignant)
-    emplois: Schedule[];
+    @OneToMany(() => Schedule, schedule => schedule.enseignant)
+    schedules: Schedule[];
 }

@@ -1,156 +1,117 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { StudyModule } from '../modules/modules.entity';
 import { Section } from '../section/section.entity';
-import { Enseignant } from '../enseignant/enseignant.entity';
-import { Etudiant } from '../etudiant/etudiant.entity';
-import { Schedule } from './schedules.entity';
+import { Schedule } from './entities/schedule.entity';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.entity';
 
 @Injectable()
 export class ScheduleService {
     constructor(
         @InjectRepository(Schedule)
         private readonly scheduleRepository: Repository<Schedule>,
-        @InjectRepository(StudyModule)
-        private readonly moduleRepository: Repository<StudyModule>,
         @InjectRepository(Section)
         private readonly sectionRepository: Repository<Section>,
-        @InjectRepository(Enseignant)
-        private readonly enseignantRepository: Repository<Enseignant>,
-        @InjectRepository(Etudiant)
-        private readonly etudiantRepository: Repository<Etudiant>,
+        private readonly notificationsService: NotificationsService
     ) { }
 
     async create(createScheduleDto: CreateScheduleDto): Promise<Schedule> {
-        const { moduleId, sectionId, enseignantId, etudiantId, ...scheduleData } = createScheduleDto;
+        const { sectionId, ...scheduleData } = createScheduleDto;
 
-        const module = await this.moduleRepository.findOneBy({ id: moduleId });
-        if (!module) throw new NotFoundException(`Module with ID ${moduleId} not found`);
+        const section = await this.sectionRepository.findOne({ 
+            where: { id: sectionId },
+            relations: ['etudiants']
+        });
 
-        const section = await this.sectionRepository.findOneBy({ id: sectionId });
-        if (!section) throw new NotFoundException(`Section with ID ${sectionId} not found`);
-
-        const enseignant = await this.enseignantRepository.findOneBy({ id: enseignantId });
-        if (!enseignant) throw new NotFoundException(`Enseignant with ID ${enseignantId} not found`);
-
-        let etudiant: Etudiant | null = null;
-        if (etudiantId) {
-            etudiant = await this.etudiantRepository.findOneBy({ id: etudiantId });
-            if (!etudiant) throw new NotFoundException(`Etudiant with ID ${etudiantId} not found`);
+        if (!section) {
+            throw new NotFoundException('Section non trouvée');
         }
 
         const schedule = this.scheduleRepository.create({
             ...scheduleData,
-            module,
-            section,
-            enseignant,
-            etudiant,
+            section
         });
 
-        return this.scheduleRepository.save(schedule);
+        const savedSchedule = await this.scheduleRepository.save(schedule);
+
+        // Notify affected students
+        if (section.etudiants) {
+            for (const etudiant of section.etudiants) {
+                await this.notificationsService.create({
+                    title: `Nouveau cours - ${savedSchedule.title}`,
+                    content: `Un nouveau cours a été programmé pour le ${savedSchedule.day} de ${savedSchedule.startTime} à ${savedSchedule.endTime} en salle ${savedSchedule.room}.`,
+                    type: NotificationType.COURS,
+                    userId: etudiant.id
+                });
+            }
+        }
+
+        return savedSchedule;
     }
 
     async findAll(): Promise<Schedule[]> {
         return this.scheduleRepository.find({
-            relations: ['module', 'section', 'enseignant', 'etudiant'],
+            relations: ['section'],
+            order: { uploadedAt: 'DESC' }
         });
     }
 
     async findOne(id: string): Promise<Schedule> {
         const schedule = await this.scheduleRepository.findOne({
             where: { id },
-            relations: ['module', 'section', 'enseignant', 'etudiant'],
+            relations: ['section']
         });
 
         if (!schedule) {
-            throw new NotFoundException(`Schedule with ID ${id} not found`);
+            throw new NotFoundException('Emploi du temps non trouvé');
         }
 
         return schedule;
     }
 
     async update(id: string, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {
-        const existingSchedule = await this.scheduleRepository.findOneBy({ id });
+        const existingSchedule = await this.scheduleRepository.findOne({
+            where: { id },
+            relations: ['section', 'section.etudiants']
+        });
+
         if (!existingSchedule) {
-            throw new NotFoundException(`Schedule with ID ${id} not found`);
+            throw new NotFoundException('Schedule not found');
         }
 
-        const { moduleId, sectionId, enseignantId, etudiantId, ...scheduleData } = updateScheduleDto;
+        Object.assign(existingSchedule, updateScheduleDto);
+        const updatedSchedule = await this.scheduleRepository.save(existingSchedule);
 
-        let module = existingSchedule.module;
-        if (moduleId && moduleId !== module.id) {
-            module = await this.moduleRepository.findOneBy({ id: moduleId });
-            if (!module) throw new NotFoundException(`Module with ID ${moduleId} not found`);
-        }
-
-        let section = existingSchedule.section;
-        if (sectionId && sectionId !== section.id) {
-            section = await this.sectionRepository.findOneBy({ id: sectionId });
-            if (!section) throw new NotFoundException(`Section with ID ${sectionId} not found`);
-        }
-
-        let enseignant = existingSchedule.enseignant;
-        if (enseignantId && enseignantId !== enseignant.id) {
-            enseignant = await this.enseignantRepository.findOneBy({ id: enseignantId });
-            if (!enseignant) throw new NotFoundException(`Enseignant with ID ${enseignantId} not found`);
-        }
-
-        let etudiant = existingSchedule.etudiant;
-        if (etudiantId !== undefined) {
-            if (etudiantId === null) {
-                etudiant = null;
-            } else if (!etudiant || etudiantId !== etudiant.id) {
-                etudiant = await this.etudiantRepository.findOneBy({ id: etudiantId });
-                if (!etudiant) throw new NotFoundException(`Etudiant with ID ${etudiantId} not found`);
+        // Notify affected students about the change
+        if (existingSchedule.section && existingSchedule.section.etudiants) {
+            for (const etudiant of existingSchedule.section.etudiants) {
+                await this.notificationsService.create({
+                    title: `Mise à jour du cours - ${updatedSchedule.title}`,
+                    content: `Le cours ${updatedSchedule.title} a été modifié pour le ${new Date(updatedSchedule.startTime).toLocaleDateString()} de ${new Date(updatedSchedule.startTime).toLocaleTimeString()} à ${new Date(updatedSchedule.endTime).toLocaleTimeString()} en salle ${updatedSchedule.room}.`,
+                    type: NotificationType.COURS,
+                    userId: etudiant.id
+                });
             }
         }
 
-        const updatedSchedule = this.scheduleRepository.merge(existingSchedule, {
-            ...scheduleData,
-            module,
-            section,
-            enseignant,
-            etudiant,
-        });
-
-        return this.scheduleRepository.save(updatedSchedule);
+        return updatedSchedule;
     }
 
     async remove(id: string): Promise<void> {
         const result = await this.scheduleRepository.delete(id);
         if (result.affected === 0) {
-            throw new NotFoundException(`Schedule with ID ${id} not found`);
+            throw new NotFoundException('Emploi du temps non trouvé');
         }
-    }
-
-    async getSchedulesByModule(moduleId: string): Promise<Schedule[]> {
-        return this.scheduleRepository.find({
-            where: { module: { id: moduleId } },
-            relations: ['section', 'enseignant', 'etudiant'],
-        });
     }
 
     async getSchedulesBySection(sectionId: string): Promise<Schedule[]> {
         return this.scheduleRepository.find({
             where: { section: { id: sectionId } },
-            relations: ['module', 'enseignant', 'etudiant'],
-        });
-    }
-
-    async getSchedulesByTeacher(teacherId: string): Promise<Schedule[]> {
-        return this.scheduleRepository.find({
-            where: { enseignant: { id: teacherId } },
-            relations: ['module', 'section', 'etudiant'],
-        });
-    }
-
-    async getSchedulesByStudent(studentId: string): Promise<Schedule[]> {
-        return this.scheduleRepository.find({
-            where: { etudiant: { id: studentId } },
-            relations: ['module', 'section', 'enseignant'],
+            relations: ['section'],
+            order: { uploadedAt: 'DESC' }
         });
     }
 }

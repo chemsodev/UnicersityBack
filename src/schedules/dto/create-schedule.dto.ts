@@ -1,4 +1,4 @@
-import { IsString, IsTimeZone, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateScheduleDto {
     @IsString()
@@ -25,4 +25,16 @@ export class CreateScheduleDto {
     @IsString()
     @IsOptional()
     etudiantId?: string;
+
+    @IsString()
+    @IsNotEmpty()
+    imageUrl: string;
+
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsString()
+    @IsOptional()
+    semester?: string;
 }

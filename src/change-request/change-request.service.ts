@@ -6,6 +6,8 @@ import { ChangeRequest, RequestType, RequestStatus, UpdateRequestStatusDto, Crea
 import { Etudiant } from '../etudiant/etudiant.entity';
 import { Section } from '../section/section.entity';
 import { Groupe } from '../groupe/groupe.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.entity';
 
 @Injectable()
 export class ChangeRequestService {
@@ -18,6 +20,7 @@ export class ChangeRequestService {
         private readonly sectionRepo: Repository<Section>,
         @InjectRepository(Groupe)
         private readonly groupeRepo: Repository<Groupe>,
+        private readonly notificationsService: NotificationsService
     ) { }
 
     async createRequest(
@@ -66,6 +69,18 @@ export class ChangeRequestService {
         if (!request) throw new NotFoundException('Request not found');
 
         request.status = updateDto.status;
+        request.responseMessage = updateDto.responseMessage;
+
+        // Create notification for the student
+        await this.notificationsService.create({
+            title: `Mise à jour de votre demande ${request.requestNumber}`,
+            content: `Votre demande a été ${updateDto.status}. ${updateDto.responseMessage || ''}`,
+            type: NotificationType.ADMIN,
+            userId: request.studentId,
+            actionLink: `demandes.html?id=${request.id}`,
+            actionLabel: 'Voir détails'
+        });
+
         return this.requestRepo.save(request);
     }
 }
