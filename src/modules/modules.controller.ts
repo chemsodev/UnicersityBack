@@ -6,6 +6,7 @@ import {
     Param,
     Put,
     Delete,
+    ParseIntPipe,
 } from '@nestjs/common';
 import { StudyModuleService } from './modules.service';
 import { CreateStudyModuleDto } from './dot/create-study-module.dto';
@@ -29,26 +30,26 @@ export class StudyModuleController {
     }
 
     @Get(':id')
-    async findOne(@Param('id') id: string): Promise<StudyModule> {
+    async findOne(@Param('id', ParseIntPipe) id: number): Promise<StudyModule> {
         return this.studyModuleService.findOne(id);
     }
 
     @Put(':id')
     async update(
-        @Param('id') id: string,
+        @Param('id', ParseIntPipe) id: number,
         @Body() updateStudyModuleDto: UpdateStudyModuleDto,
     ): Promise<StudyModule> {
         return this.studyModuleService.update(id, updateStudyModuleDto);
     }
 
     @Delete(':id')
-    async remove(@Param('id') id: string): Promise<void> {
+    async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
         return this.studyModuleService.remove(id);
     }
 
     @Post(':id/assign-teachers')
     async assignTeachers(
-        @Param('id') id: string,
+        @Param('id', ParseIntPipe) id: number,
         @Body() assignTeachersDto: AssignTeachersDto,
     ): Promise<StudyModule> {
         return this.studyModuleService.assignTeachers(id, assignTeachersDto);
@@ -56,19 +57,19 @@ export class StudyModuleController {
 
     @Post(':id/assign-sections')
     async assignSections(
-        @Param('id') id: string,
+        @Param('id', ParseIntPipe) id: number,
         @Body() assignSectionsDto: AssignSectionsDto,
     ): Promise<StudyModule> {
         return this.studyModuleService.assignSections(id, assignSectionsDto);
     }
 
     @Get('by-teacher/:teacherId')
-    async getModulesByTeacher(@Param('teacherId') teacherId: string): Promise<StudyModule[]> {
+    async getModulesByTeacher(@Param('teacherId', ParseIntPipe) teacherId: number): Promise<StudyModule[]> {
         return this.studyModuleService.getModulesByTeacher(teacherId);
     }
 
     @Get('by-section/:sectionId')
-    async getModulesBySection(@Param('sectionId') sectionId: string): Promise<StudyModule[]> {
+    async getModulesBySection(@Param('sectionId', ParseIntPipe) sectionId: number): Promise<StudyModule[]> {
         return this.studyModuleService.getModulesBySection(sectionId);
     }
 }

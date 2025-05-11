@@ -9,6 +9,6 @@ export class CreateNoteDto {
     @IsString()
     etudiantId: string;
 
-    @IsString()
-    moduleId: string;
+    @IsNumber()
+    moduleId: number;
 }

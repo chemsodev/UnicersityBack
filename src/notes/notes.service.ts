@@ -81,7 +81,7 @@ export class NoteService {
         });
     }
 
-    async findOne(id: string): Promise<Note> {
+    async findOne(id: number): Promise<Note> {
         const note = await this.noteRepository.findOne({
             where: { id },
             relations: ['etudiant', 'module'],
@@ -94,7 +94,7 @@ export class NoteService {
         return note;
     }
 
-    async update(id: string, updateNoteDto: UpdateNoteDto): Promise<Note> {
+    async update(id: number, updateNoteDto: UpdateNoteDto): Promise<Note> {
         const existingNote = await this.noteRepository.findOne({
             where: { id },
             relations: ['etudiant', 'module'],
@@ -137,7 +137,7 @@ export class NoteService {
         return savedNote;
     }
 
-    async remove(id: string): Promise<void> {
+    async remove(id: number): Promise<void> {
         const result = await this.noteRepository.delete(id);
         if (result.affected === 0) {
             throw new NotFoundException(`Note with ID ${id} not found`);
@@ -151,14 +151,19 @@ export class NoteService {
         });
     }
 
-    async getNotesByModule(moduleId: string): Promise<Note[]> {
-        return this.noteRepository.find({
+    async getNotesByModule(moduleId: number): Promise<Note[]> {
+        const module = await this.moduleRepository.findOneBy({ id: moduleId });
+        if (!module) {
+            throw new NotFoundException(`Module with ID ${moduleId} not found`);
+        }
+
+        return await this.noteRepository.find({
             where: { module: { id: moduleId } },
-            relations: ['etudiant'],
+            relations: ['etudiant', 'module'],
         });
     }
 
-    async getStudentNotesForModule(studentId: string, moduleId: string): Promise<Note[]> {
+    async getStudentNotesForModule(studentId: string, moduleId: number): Promise<Note[]> {
         return this.noteRepository.find({
             where: {
                 etudiant: { id: studentId },
@@ -168,7 +173,7 @@ export class NoteService {
         });
     }
 
-    async calculateModuleAverage(moduleId: string): Promise<{
+    async calculateModuleAverage(moduleId: number): Promise<{
         average: number;
         min: number;
         max: number;
@@ -196,7 +201,7 @@ export class NoteService {
 
     async calculateStudentAverage(studentId: string): Promise<{
         average: number;
-        moduleAverages: { moduleId: string; average: number }[];
+        moduleAverages: { moduleId: number; average: number }[];
     }> {
         const notes = await this.noteRepository.find({
             where: { etudiant: { id: studentId } },
@@ -208,25 +213,25 @@ export class NoteService {
         }
 
         // Group notes by module
-        const moduleNotes: Record<string, number[]> = notes.reduce((acc, note) => {
+        const moduleNotes: Record<number, number[]> = notes.reduce((acc, note) => {
             const moduleId = note.module.id;
             if (!acc[moduleId]) {
                 acc[moduleId] = [];
             }
             acc[moduleId].push(note.value);
             return acc;
-        }, {} as Record<string, number[]>);
+        }, {} as Record<number, number[]>);
 
         // Calculate average for each module considering coefficients
         const moduleAverages = await Promise.all(
             Object.entries(moduleNotes).map(async ([moduleId, values]: [string, number[]]) => {
-                const module = await this.moduleRepository.findOneBy({ id: moduleId });
+                const module = await this.moduleRepository.findOneBy({ id: parseInt(moduleId, 10) });
                 if (!module) {
                     throw new NotFoundException(`Module with ID ${moduleId} not found`);
                 }
                 const average = values.reduce((a, b) => a + b, 0) / values.length;
                 return {
-                    moduleId,
+                    moduleId: parseInt(moduleId, 10),
                     average,
                     coefficient: module.coefficient
                 };
@@ -241,5 +246,73 @@ export class NoteService {
             average: weightedSum / totalCoefficient,
             moduleAverages: moduleAverages.map(({ moduleId, average }) => ({ moduleId, average }))
         };
+    }
+
+    async findByEtudiantAndModule(etudiantId: string, moduleId: number): Promise<Note[]> {
+        const module = await this.moduleRepository.findOneBy({ id: moduleId });
+        if (!module) {
+            throw new NotFoundException(`Module with ID ${moduleId} not found`);
+        }
+
+        return await this.noteRepository.find({
+            where: { 
+                etudiant: { id: etudiantId },
+                module: { id: moduleId } 
+            },
+            relations: ['etudiant', 'module'],
+        });
+    }
+
+    async createForEtudiant(etudiantId: string, moduleId: number, createNoteDto: CreateNoteDto): Promise<Note> {
+        const module = await this.moduleRepository.findOneBy({ id: moduleId });
+        if (!module) {
+            throw new NotFoundException(`Module with ID ${moduleId} not found`);
+        }
+
+        const etudiant = await this.etudiantRepository.findOneBy({ id: etudiantId });
+        if (!etudiant) {
+            throw new NotFoundException(`Etudiant with ID ${etudiantId} not found`);
+        }
+
+        const note = this.noteRepository.create({
+            ...createNoteDto,
+            etudiant,
+            module
+        });
+
+        return await this.noteRepository.save(note);
+    }
+
+    async updateForEtudiant(etudiantId: string, moduleId: number, updateNoteDto: UpdateNoteDto): Promise<Note> {
+        const note = await this.noteRepository.findOne({
+            where: { 
+                etudiant: { id: etudiantId },
+                module: { id: moduleId } 
+            },
+            relations: ['etudiant', 'module'],
+        });
+
+        if (!note) {
+            throw new NotFoundException(`Note not found for module ${moduleId}`);
+        }
+
+        Object.assign(note, updateNoteDto);
+        return await this.noteRepository.save(note);
+    }
+
+    async removeForEtudiant(etudiantId: string, moduleId: number): Promise<void> {
+        const note = await this.noteRepository.findOne({
+            where: { 
+                etudiant: { id: etudiantId },
+                module: { id: moduleId } 
+            },
+            relations: ['etudiant', 'module'],
+        });
+
+        if (!note) {
+            throw new NotFoundException(`Note not found for module ${moduleId}`);
+        }
+
+        await this.noteRepository.remove(note);
     }
 }

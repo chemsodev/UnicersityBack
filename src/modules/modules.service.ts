@@ -31,40 +31,36 @@ export class StudyModuleService {
         });
     }
 
-    async findOne(id: string): Promise<StudyModule> {
+    async findOne(id: number): Promise<StudyModule> {
         const module = await this.studyModuleRepository.findOne({
             where: { id },
             relations: ['enseignants', 'sections'],
         });
 
         if (!module) {
-            throw new NotFoundException(`StudyModule with ID ${id} not found`);
+            throw new NotFoundException(`Module with ID ${id} not found`);
         }
 
         return module;
     }
 
-    async update(id: string, updateStudyModuleDto: UpdateStudyModuleDto): Promise<StudyModule> {
-        const module = await this.studyModuleRepository.preload({
+    async update(id: number, updateModuleDto: UpdateStudyModuleDto): Promise<StudyModule> {
+        const module = await this.findOne(id);
+        Object.assign(module, {
             id,
-            ...updateStudyModuleDto,
+            ...updateModuleDto
         });
-
-        if (!module) {
-            throw new NotFoundException(`StudyModule with ID ${id} not found`);
-        }
-
-        return this.studyModuleRepository.save(module);
+        return await this.studyModuleRepository.save(module);
     }
 
-    async remove(id: string): Promise<void> {
+    async remove(id: number): Promise<void> {
         const result = await this.studyModuleRepository.delete(id);
         if (result.affected === 0) {
             throw new NotFoundException(`StudyModule with ID ${id} not found`);
         }
     }
 
-    async assignTeachers(id: string, assignTeachersDto: AssignTeachersDto): Promise<StudyModule> {
+    async assignTeachers(id: number, assignTeachersDto: AssignTeachersDto): Promise<StudyModule> {
         const module = await this.findOne(id);
         const enseignants = await this.enseignantRepository.findBy({
             id: In(assignTeachersDto.teacherIds),
@@ -74,7 +70,7 @@ export class StudyModuleService {
         return this.studyModuleRepository.save(module);
     }
 
-    async assignSections(id: string, assignSectionsDto: AssignSectionsDto): Promise<StudyModule> {
+    async assignSections(id: number, assignSectionsDto: AssignSectionsDto): Promise<StudyModule> {
         const module = await this.findOne(id);
         const sections = await this.sectionRepository.findBy({
             id: In(assignSectionsDto.sectionIds),
@@ -84,7 +80,7 @@ export class StudyModuleService {
         return this.studyModuleRepository.save(module);
     }
 
-    async getModulesByTeacher(teacherId: string): Promise<StudyModule[]> {
+    async getModulesByTeacher(teacherId: number): Promise<StudyModule[]> {
         return this.studyModuleRepository
             .createQueryBuilder('module')
             .innerJoin('module.enseignants', 'teacher')
@@ -92,7 +88,7 @@ export class StudyModuleService {
             .getMany();
     }
 
-    async getModulesBySection(sectionId: string): Promise<StudyModule[]> {
+    async getModulesBySection(sectionId: number): Promise<StudyModule[]> {
         return this.studyModuleRepository
             .createQueryBuilder('module')
             .innerJoin('module.sections', 'section')

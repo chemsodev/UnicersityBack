@@ -15,7 +15,7 @@ export class Enseignant extends User {
     id_enseignant: string;
     @ManyToMany(() => StudyModule, module => module.enseignants)
     @JoinTable({
-        name: 'module_enseignants',
+        name: 'enseignant_modules',
         joinColumn: {
             name: 'enseignant_id',
             referencedColumnName: 'id'

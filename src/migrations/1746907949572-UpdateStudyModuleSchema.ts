@@ -5,7 +5,7 @@ export class UpdateStudyModuleSchema1746907949572 implements MigrationInterface 
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         // Drop foreign key constraints that depend on the primary key
-        await queryRunner.query(`ALTER TABLE "module_enseignants" DROP CONSTRAINT IF EXISTS "FK_module_enseignants_study_module"`);
+        await queryRunner.query(`ALTER TABLE "enseignant_modules" DROP CONSTRAINT IF EXISTS "FK_module_enseignants_study_module"`);
         await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT IF EXISTS "FK_notes_study_module"`);
         await queryRunner.query(`ALTER TABLE "schedules" DROP CONSTRAINT IF EXISTS "FK_schedules_study_module"`);
 
@@ -28,9 +28,9 @@ export class UpdateStudyModuleSchema1746907949572 implements MigrationInterface 
         await queryRunner.query(`ALTER TABLE "study_modules" DROP COLUMN IF EXISTS "type"`);
 
         // Re-add foreign key constraints
-        await queryRunner.query(`ALTER TABLE "module_enseignants" 
+        await queryRunner.query(`ALTER TABLE "enseignant_modules" 
             ADD CONSTRAINT "FK_module_enseignants_study_module" 
-            FOREIGN KEY ("studyModuleId") REFERENCES "study_modules"("id") ON DELETE CASCADE`);
+            FOREIGN KEY ("module_id") REFERENCES "study_modules"("id") ON DELETE CASCADE`);
         await queryRunner.query(`ALTER TABLE "notes" 
             ADD CONSTRAINT "FK_notes_study_module" 
             FOREIGN KEY ("moduleId") REFERENCES "study_modules"("id") ON DELETE CASCADE`);
@@ -41,7 +41,7 @@ export class UpdateStudyModuleSchema1746907949572 implements MigrationInterface 
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         // Drop foreign key constraints
-        await queryRunner.query(`ALTER TABLE "module_enseignants" DROP CONSTRAINT IF EXISTS "FK_module_enseignants_study_module"`);
+        await queryRunner.query(`ALTER TABLE "enseignant_modules" DROP CONSTRAINT IF EXISTS "FK_module_enseignants_study_module"`);
         await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT IF EXISTS "FK_notes_study_module"`);
         await queryRunner.query(`ALTER TABLE "schedules" DROP CONSTRAINT IF EXISTS "FK_schedules_study_module"`);
 
@@ -58,9 +58,9 @@ export class UpdateStudyModuleSchema1746907949572 implements MigrationInterface 
         await queryRunner.query(`ALTER TABLE "study_modules" DROP COLUMN IF EXISTS "code"`);
 
         // Re-add foreign key constraints
-        await queryRunner.query(`ALTER TABLE "module_enseignants" 
+        await queryRunner.query(`ALTER TABLE "enseignant_modules" 
             ADD CONSTRAINT "FK_module_enseignants_study_module" 
-            FOREIGN KEY ("studyModuleId") REFERENCES "study_modules"("id") ON DELETE CASCADE`);
+            FOREIGN KEY ("module_id") REFERENCES "study_modules"("id") ON DELETE CASCADE`);
         await queryRunner.query(`ALTER TABLE "notes" 
             ADD CONSTRAINT "FK_notes_study_module" 
             FOREIGN KEY ("moduleId") REFERENCES "study_modules"("id") ON DELETE CASCADE`);

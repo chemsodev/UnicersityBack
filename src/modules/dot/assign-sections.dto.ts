@@ -1,7 +1,7 @@
-import { IsArray, IsString } from 'class-validator';
+import { IsArray, IsNumber } from 'class-validator';
 
 export class AssignSectionsDto {
     @IsArray()
-    @IsString({ each: true })
-    sectionIds: string[];
+    @IsNumber({}, { each: true })
+    sectionIds: number[];
 }

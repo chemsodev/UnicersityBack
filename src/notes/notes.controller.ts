@@ -7,6 +7,7 @@ import {
     Delete,
     Patch,
     UseGuards,
+    ParseIntPipe,
 } from '@nestjs/common';
 import { Note } from './notes.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -37,21 +38,21 @@ export class NoteController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
+    findOne(@Param('id', ParseIntPipe) id: number) {
         return this.noteService.findOne(id);
     }
 
     @Patch(':id')
     @UseGuards(RolesGuard)
     @Roles(AdminRole.ENSEIGNANT)
-    update(@Param('id') id: string, @Body() updateNoteDto: UpdateNoteDto) {
+    update(@Param('id', ParseIntPipe) id: number, @Body() updateNoteDto: UpdateNoteDto) {
         return this.noteService.update(id, updateNoteDto);
     }
 
     @Delete(':id')
     @UseGuards(RolesGuard)
     @Roles(AdminRole.ENSEIGNANT)
-    remove(@Param('id') id: string) {
+    remove(@Param('id', ParseIntPipe) id: number) {
         return this.noteService.remove(id);
     }
 
@@ -61,14 +62,14 @@ export class NoteController {
     }
 
     @Get('by-module/:moduleId')
-    async getByModule(@Param('moduleId') moduleId: string): Promise<Note[]> {
+    async getByModule(@Param('moduleId', ParseIntPipe) moduleId: number): Promise<Note[]> {
         return this.noteService.getNotesByModule(moduleId);
     }
 
     @Get('for-student/:studentId/module/:moduleId')
     async getStudentModuleNotes(
         @Param('studentId') studentId: string,
-        @Param('moduleId') moduleId: string,
+        @Param('moduleId', ParseIntPipe) moduleId: number,
     ): Promise<Note[]> {
         return this.noteService.getStudentNotesForModule(studentId, moduleId);
     }
@@ -76,7 +77,7 @@ export class NoteController {
     @Get('module/:moduleId/statistics')
     @UseGuards(RolesGuard)
     @Roles(AdminRole.ENSEIGNANT, AdminRole.CHEF_DE_DEPARTEMENT)
-    async getModuleStatistics(@Param('moduleId') moduleId: string) {
+    async getModuleStatistics(@Param('moduleId', ParseIntPipe) moduleId: number) {
         return this.noteService.calculateModuleAverage(moduleId);
     }
 
