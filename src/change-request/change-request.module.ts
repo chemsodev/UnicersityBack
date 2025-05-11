@@ -1,6 +1,7 @@
 // src/change-request/change-request.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { ChangeRequestController } from './change-request.controller';
 import { ChangeRequestService } from './change-request.service';
 import { ChangeRequest } from './change-request.entity';
@@ -13,8 +14,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
     imports: [
+        ConfigModule,
         TypeOrmModule.forFeature([ChangeRequest, Etudiant, Section, Groupe]),
-        AuthModule , JwtModule, NotificationsModule
+        AuthModule, JwtModule, NotificationsModule
     ],
     controllers: [ChangeRequestController],
     providers: [ChangeRequestService],

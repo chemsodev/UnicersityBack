@@ -1,6 +1,7 @@
 // src/groupe/groupe.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { GroupeController } from './groupe.controller';
 import { GroupeService } from './groupe.service';
 import { Groupe } from './groupe.entity';
@@ -11,8 +12,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
     imports: [
+        ConfigModule,
         TypeOrmModule.forFeature([Groupe, Section]),
-        AuthModule , JwtModule,
+        AuthModule, JwtModule,
         NotificationsModule
     ],
     controllers: [GroupeController],
