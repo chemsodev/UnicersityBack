@@ -1,19 +1,31 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class UpdateScheduleDto {
     @IsString()
     @IsOptional()
-    imageUrl?: string;
-
+    day?: string;
+    
     @IsString()
     @IsOptional()
-    title?: string;
-
+    startTime?: string;
+    
+    @IsString()
+    @IsOptional()
+    endTime?: string;
+    
+    @IsString()
+    @IsOptional()
+    room?: string;
+    
     @IsString()
     @IsOptional()
     sectionId?: string;
-
-    @IsString()
+    
+    @IsNumber()
     @IsOptional()
-    semester?: string;
+    enseignantId?: number;
+    
+    @IsNumber()
+    @IsOptional()
+    etudiantId?: number;
 }

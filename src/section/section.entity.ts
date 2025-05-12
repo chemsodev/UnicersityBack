@@ -4,7 +4,7 @@ import { Etudiant } from '../etudiant/etudiant.entity';
 import { Groupe } from '../groupe/groupe.entity';
 import { StudyModule } from '../modules/modules.entity';
 import { Schedule } from '../schedules/entities/schedule.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, OneToMany, JoinTable } from 'typeorm';
 
 @Entity({ name: 'sections' })
 export class Section {
@@ -37,7 +37,7 @@ export class Section {
 
     @ManyToMany(() => Etudiant, etudiant => etudiant.sections)
     @JoinTable({
-        name: 'section_etudiants',
+        name: 'etudiant_sections',
         joinColumn: {
             name: 'section_id',
             referencedColumnName: 'id'
@@ -51,7 +51,7 @@ export class Section {
 
     @ManyToMany(() => StudyModule, module => module.sections)
     @JoinTable({
-        name: 'section_modules',
+        name: 'module_sections',
         joinColumn: {
             name: 'section_id',
             referencedColumnName: 'id'
@@ -65,10 +65,4 @@ export class Section {
 
     @OneToMany(() => Schedule, schedule => schedule.section)
     schedules: Schedule[];
-
-    @CreateDateColumn()
-    createdAt: Date;
-
-    @UpdateDateColumn()
-    updatedAt: Date;
 }

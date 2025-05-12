@@ -19,22 +19,10 @@ export class CreateScheduleDto {
     @IsString()
     sectionId: string;
 
-    @IsString()
-    enseignantId: string;
+    @IsNumber()
+    enseignantId: number;
 
-    @IsString()
+    @IsNumber()
     @IsOptional()
-    etudiantId?: string;
-
-    @IsString()
-    @IsNotEmpty()
-    imageUrl: string;
-
-    @IsString()
-    @IsNotEmpty()
-    title: string;
-
-    @IsString()
-    @IsOptional()
-    semester?: string;
+    etudiantId?: number;
 }

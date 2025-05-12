@@ -8,6 +8,7 @@ import {
     Delete,
     Query,
     UseGuards,
+    ParseIntPipe,
 } from '@nestjs/common';
 import { ScheduleService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
@@ -36,7 +37,7 @@ export class SchedulesController {
     }
 
     @Get(':id')
-    async findOne(@Param('id') id: string): Promise<Schedule> {
+    async findOne(@Param('id', ParseIntPipe) id: number): Promise<Schedule> {
         return this.scheduleService.findOne(id);
     }
 
@@ -44,7 +45,7 @@ export class SchedulesController {
     @UseGuards(RolesGuard)
     @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
     async update(
-        @Param('id') id: string,
+        @Param('id', ParseIntPipe) id: number,
         @Body() updateScheduleDto: UpdateScheduleDto
     ): Promise<Schedule> {
         return this.scheduleService.update(id, updateScheduleDto);
@@ -53,7 +54,7 @@ export class SchedulesController {
     @Delete(':id')
     @UseGuards(RolesGuard)
     @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
-    async remove(@Param('id') id: string): Promise<void> {
+    async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
         return this.scheduleService.remove(id);
     }
 

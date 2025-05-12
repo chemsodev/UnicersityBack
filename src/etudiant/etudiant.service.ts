@@ -43,10 +43,13 @@ export class EtudiantService {
     }
 
     async findOne(id: string): Promise<Etudiant> {
-        const etudiant = await this.etudiantRepo.findOne({
-            where: { id },
-            relations: ['sections', 'notesReleve', 'schedules']
-        });
+        const etudiant = await this.etudiantRepo
+            .createQueryBuilder('etudiant')
+            .leftJoinAndSelect('etudiant.sections', 'sections')
+            .leftJoinAndSelect('etudiant.notesReleve', 'notesReleve')
+            .leftJoinAndSelect('etudiant.schedules', 'schedules')
+            .where('etudiant.id = :id', { id })
+            .getOne();
 
         if (!etudiant) {
             throw new NotFoundException(`Étudiant avec l'ID ${id} non trouvé`);
@@ -113,10 +116,13 @@ export class EtudiantService {
 
         try {
             await this.etudiantRepo.update(id, updateEtudiantDto);
-            const updatedEtudiant = await this.etudiantRepo.findOne({
-                where: { id },
-                relations: ['sections', 'notesReleve', 'schedules']
-            });
+            const updatedEtudiant = await this.etudiantRepo
+                .createQueryBuilder('etudiant')
+                .leftJoinAndSelect('etudiant.sections', 'sections')
+                .leftJoinAndSelect('etudiant.notesReleve', 'notesReleve')
+                .leftJoinAndSelect('etudiant.schedules', 'schedules')
+                .where('etudiant.id = :id', { id })
+                .getOne();
 
             if (!updatedEtudiant) {
                 throw new InternalServerErrorException("Échec de la récupération de l'étudiant mis à jour");

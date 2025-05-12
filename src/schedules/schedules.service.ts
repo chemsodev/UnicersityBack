@@ -41,7 +41,7 @@ export class ScheduleService {
         if (section.etudiants) {
             for (const etudiant of section.etudiants) {
                 await this.notificationsService.create({
-                    title: `Nouveau cours - ${savedSchedule.title}`,
+                    title: `Nouveau cours`,
                     content: `Un nouveau cours a été programmé pour le ${savedSchedule.day} de ${savedSchedule.startTime} à ${savedSchedule.endTime} en salle ${savedSchedule.room}.`,
                     type: NotificationType.COURS,
                     userId: etudiant.id
@@ -54,12 +54,11 @@ export class ScheduleService {
 
     async findAll(): Promise<Schedule[]> {
         return this.scheduleRepository.find({
-            relations: ['section'],
-            order: { uploadedAt: 'DESC' }
+            relations: ['section']
         });
     }
 
-    async findOne(id: string): Promise<Schedule> {
+    async findOne(id: number): Promise<Schedule> {
         const schedule = await this.scheduleRepository.findOne({
             where: { id },
             relations: ['section']
@@ -72,7 +71,7 @@ export class ScheduleService {
         return schedule;
     }
 
-    async update(id: string, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {
+    async update(id: number, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {
         const existingSchedule = await this.scheduleRepository.findOne({
             where: { id },
             relations: ['section', 'section.etudiants']
@@ -89,8 +88,8 @@ export class ScheduleService {
         if (existingSchedule.section && existingSchedule.section.etudiants) {
             for (const etudiant of existingSchedule.section.etudiants) {
                 await this.notificationsService.create({
-                    title: `Mise à jour du cours - ${updatedSchedule.title}`,
-                    content: `Le cours ${updatedSchedule.title} a été modifié pour le ${new Date(updatedSchedule.startTime).toLocaleDateString()} de ${new Date(updatedSchedule.startTime).toLocaleTimeString()} à ${new Date(updatedSchedule.endTime).toLocaleTimeString()} en salle ${updatedSchedule.room}.`,
+                    title: `Mise à jour du cours`,
+                    content: `Un cours a été modifié pour le ${updatedSchedule.day} de ${updatedSchedule.startTime} à ${updatedSchedule.endTime} en salle ${updatedSchedule.room}.`,
                     type: NotificationType.COURS,
                     userId: etudiant.id
                 });
@@ -100,7 +99,7 @@ export class ScheduleService {
         return updatedSchedule;
     }
 
-    async remove(id: string): Promise<void> {
+    async remove(id: number): Promise<void> {
         const result = await this.scheduleRepository.delete(id);
         if (result.affected === 0) {
             throw new NotFoundException('Emploi du temps non trouvé');
@@ -110,8 +109,7 @@ export class ScheduleService {
     async getSchedulesBySection(sectionId: string): Promise<Schedule[]> {
         return this.scheduleRepository.find({
             where: { section: { id: sectionId } },
-            relations: ['section'],
-            order: { uploadedAt: 'DESC' }
+            relations: ['section']
         });
     }
 }
