@@ -1,8 +1,7 @@
+import { Section } from "../section/section.entity";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 
-import { Section } from 'src/section/section.entity';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-
-@Entity({ name: 'departments' })
+@Entity({ name: "departments" })
 export class Department {
   @PrimaryGeneratedColumn()
   id: string;
@@ -10,7 +9,7 @@ export class Department {
   @Column({ length: 100 })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   description?: string;
 
   @Column({ length: 100 })
