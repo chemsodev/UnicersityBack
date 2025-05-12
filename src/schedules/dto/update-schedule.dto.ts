@@ -12,15 +12,15 @@ export class UpdateScheduleDto {
     @IsString()
     @IsOptional()
     endTime?: string;
-    
+
     @IsString()
     @IsOptional()
     room?: string;
-    
+
     @IsString()
     @IsOptional()
     sectionId?: string;
-    
+
     @IsNumber()
     @IsOptional()
     enseignantId?: number;
