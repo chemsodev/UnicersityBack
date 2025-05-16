@@ -1,37 +1,46 @@
-import { IsString, IsOptional, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsObject } from "class-validator";
 
-// Remove the duplicate class declaration at line 36
-// Keep only one instance of:
 export class CreateProfileRequestDto {
   @IsUUID()
-  @IsNotEmpty()
   studentId: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   adresseEmailPersonnelle?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   numeroTelephonePrincipal?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   numeroTelephoneSecondaire?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   adressePostale?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   codePostal?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   ville?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   contactEnCasDurgence?: string;
+
+  @IsOptional()
+  @IsObject()
+  changes?: {
+    personalEmail?: string;
+    phone?: string;
+    secondaryPhone?: string;
+    address?: string;
+    postalCode?: string;
+    city?: string;
+    emergencyContact?: string;
+  };
 }

@@ -1,100 +1,115 @@
 // src/change-request/change-request.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Etudiant } from '../etudiant/etudiant.entity';
-import { Section } from '../section/section.entity';
-import { Groupe } from '../groupe/groupe.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import { Etudiant } from "../etudiant/etudiant.entity";
+import { Section } from "../section/section.entity";
+import { Groupe } from "../groupe/groupe.entity";
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsEnum,
+  IsOptional,
+} from "class-validator";
 
 export enum RequestType {
-    SECTION = 'section',
-    GROUPE_TP = 'groupe_tp',
-    GROUPE_TD = 'groupe_td'
+  SECTION = "section",
+  GROUPE_TP = "groupe_tp",
+  GROUPE_TD = "groupe_td",
 }
 
 export enum RequestStatus {
-    PENDING = 'pending',
-    APPROVED = 'approved',
-    REJECTED = 'rejected'
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+  CANCELLED = "cancelled",
 }
 
 @Entity()
 export class ChangeRequest {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
 
-    @ManyToOne(() => Etudiant)
-    etudiant: Etudiant;
+  @ManyToOne(() => Etudiant)
+  etudiant: Etudiant;
 
-    @Column({
-        type: 'enum',
-        enum: RequestType
-    })
-    requestType: RequestType;
-    @ManyToOne(() => Section, { nullable: true })
-    currentSection?: Section;
+  @Column({
+    type: "enum",
+    enum: RequestType,
+  })
+  requestType: RequestType;
 
-    @ManyToOne(() => Section, { nullable: true })
-    requestedSection?: Section;
+  @ManyToOne(() => Section, { nullable: true })
+  currentSection?: Section;
 
-    // For group changes
-    @ManyToOne(() => Groupe, { nullable: true })
-    currentGroupe?: Groupe;
+  @ManyToOne(() => Section, { nullable: true })
+  requestedSection?: Section;
 
-    @ManyToOne(() => Groupe, { nullable: true })
-    requestedGroupe?: Groupe;
+  // For group changes
+  @ManyToOne(() => Groupe, { nullable: true })
+  currentGroupe?: Groupe;
 
-    @Column('text')
-    justification: string;
+  @ManyToOne(() => Groupe, { nullable: true })
+  requestedGroupe?: Groupe;
 
-    @Column()
-    documentPath: string;
+  @Column("text")
+  justification: string;
 
-    @Column({
-        type: 'enum',
-        enum: RequestStatus,
-        default: RequestStatus.PENDING
-    })
-    status: RequestStatus;
+  @Column({ nullable: true })
+  documentPath?: string;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @Column({
+    type: "enum",
+    enum: RequestStatus,
+    default: RequestStatus.PENDING,
+  })
+  status: RequestStatus;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @Column({ nullable: true })
-    responseMessage?: string;
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-    @Column({ unique: true })
-    requestNumber: string;
+  @Column({ nullable: true })
+  responseMessage?: string;
 
-    @Column()
-    studentId: string;
+  @Column({ unique: true })
+  requestNumber: string;
+
+  @Column()
+  studentId: string;
 }
 
-import { IsNotEmpty, IsString, IsUUID, IsEnum, IsOptional } from 'class-validator'
-
 export class CreateChangeRequestDto {
-    @IsEnum(RequestType)
-    requestType: RequestType;
+  @IsEnum(RequestType)
+  @IsNotEmpty()
+  requestType: RequestType;
 
-    @IsUUID()
-    @IsNotEmpty()
-    currentId: string;
+  @IsString()
+  @IsNotEmpty()
+  currentId: string;
 
-    @IsUUID()
-    @IsNotEmpty()
-    requestedId: string;
+  @IsString()
+  @IsNotEmpty()
+  requestedId: string;
 
-    @IsString()
-    @IsNotEmpty()
-    justification: string;
+  @IsString()
+  @IsNotEmpty()
+  justification: string;
 }
 
 export class UpdateRequestStatusDto {
-    @IsEnum(RequestStatus)
-    status: RequestStatus;
+  @IsEnum(RequestStatus)
+  status: RequestStatus;
 
-    @IsString()
-    @IsOptional()
-    responseMessage?: string;
+  @IsString()
+  @IsOptional()
+  responseMessage?: string;
 }

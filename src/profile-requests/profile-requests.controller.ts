@@ -10,27 +10,37 @@ import {
   Request,
   UnauthorizedException,
   ForbiddenException,
-} from '@nestjs/common';
-import { ProfileRequestsService } from './profile-requests.service';
-import { CreateProfileRequestDto } from './dto/create-profile-request.dto';
-import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../roles/roles.guard';
-import { Roles } from '../roles/roles.decorator';
-import { AdminRole } from '../user.entity';
+} from "@nestjs/common";
+import { ProfileRequestsService } from "./profile-requests.service";
+import { CreateProfileRequestDto } from "./dto/create-profile-request.dto";
+import { UpdateProfileRequestDto } from "./dto/update-profile-request.dto";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { RolesGuard } from "../roles/roles.guard";
+import { Roles } from "../roles/roles.decorator";
+import { AdminRole } from "../user.entity";
 
-@Controller('profile-requests')
+@Controller("profile-requests")
 @UseGuards(JwtAuthGuard)
 export class ProfileRequestsController {
-  constructor(private readonly profileRequestsService: ProfileRequestsService) {}
+  constructor(
+    private readonly profileRequestsService: ProfileRequestsService
+  ) {}
 
   @Post()
-  async create(@Body() createProfileRequestDto: CreateProfileRequestDto, @Request() req) {
+  async create(
+    @Body() createProfileRequestDto: CreateProfileRequestDto,
+    @Request() req
+  ) {
     // Ensure students can only create requests for themselves
-    if (req.user.userType === 'etudiant' && req.user.userId !== createProfileRequestDto.studentId) {
-      throw new ForbiddenException('Vous ne pouvez créer des demandes que pour votre propre profil');
+    if (
+      req.user.userType === "etudiant" &&
+      req.user.userId !== createProfileRequestDto.studentId
+    ) {
+      throw new ForbiddenException(
+        "Vous ne pouvez créer des demandes que pour votre propre profil"
+      );
     }
-    
+
     return this.profileRequestsService.create(createProfileRequestDto);
   }
 
@@ -41,49 +51,51 @@ export class ProfileRequestsController {
     return this.profileRequestsService.findAll();
   }
 
-  @Get('pending')
+  @Get("pending")
   @UseGuards(RolesGuard)
   @Roles(AdminRole.SECRETAIRE)
   findPending() {
-    return this.profileRequestsService.findByStatus('pending');
+    return this.profileRequestsService.findByStatus("pending");
   }
 
-  @Get('student/:id')
-  async findByStudent(@Param('id') id: string, @Request() req) {
+  @Get("student/:id")
+  async findByStudent(@Param("id") id: string, @Request() req) {
     // Students can only view their own requests
-    if (req.user.userType === 'etudiant' && req.user.userId !== id) {
-      throw new UnauthorizedException('Vous ne pouvez voir que vos propres demandes');
+    if (req.user.userType === "etudiant" && req.user.userId !== id) {
+      throw new UnauthorizedException(
+        "Vous ne pouvez voir que vos propres demandes"
+      );
     }
-    
+
     return this.profileRequestsService.findByStudent(id);
   }
 
-  @Get(':id')
+  @Get(":id")
   @UseGuards(RolesGuard)
   @Roles(AdminRole.SECRETAIRE)
-  findOne(@Param('id') id: string) {
+  findOne(@Param("id") id: string) {
     return this.profileRequestsService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @UseGuards(RolesGuard)
   @Roles(AdminRole.SECRETAIRE)
   update(
-    @Param('id') id: string, 
+    @Param("id") id: string,
     @Body() updateProfileRequestDto: UpdateProfileRequestDto,
     @Request() req
   ) {
     // Store the admin ID who processed the request
     return this.profileRequestsService.update(id, {
       ...updateProfileRequestDto,
-      processedById: req.user.userId
+      processedById: req.user.userId,
     });
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(RolesGuard)
   @Roles(AdminRole.SECRETAIRE)
-  remove(@Param('id') id: string) {
+  remove(@Param("id") id: string) {
     return this.profileRequestsService.remove(id);
   }
 }

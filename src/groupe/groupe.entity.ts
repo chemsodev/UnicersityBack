@@ -46,8 +46,11 @@ export class Groupe {
   @OneToMany(() => ChangeRequest, (request) => request.requestedGroupe)
   changeRequestsTo: ChangeRequest[];
 
-  @OneToMany(() => Etudiant, (etudiant) => etudiant.groupe)
-  etudiants: Etudiant[];
+  @OneToMany(() => Etudiant, (etudiant) => etudiant.tdGroupe)
+  etudiantsTD: Etudiant[];
+
+  @OneToMany(() => Etudiant, (etudiant) => etudiant.tpGroupe)
+  etudiantsTP: Etudiant[];
 
   @CreateDateColumn()
   createdAt: Date;

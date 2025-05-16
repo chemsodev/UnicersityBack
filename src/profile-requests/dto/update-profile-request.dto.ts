@@ -1,12 +1,12 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { ProfileRequestStatus } from '../profile-request.entity';
+import { IsEnum, IsOptional, IsString } from "class-validator";
+import { ProfileRequestStatus } from "../profile-request.entity";
 
 export class UpdateProfileRequestDto {
-  @IsEnum(ProfileRequestStatus)
   @IsOptional()
+  @IsEnum(ProfileRequestStatus)
   status?: ProfileRequestStatus;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   adminComment?: string;
 }

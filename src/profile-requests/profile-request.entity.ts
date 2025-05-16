@@ -1,18 +1,25 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Etudiant } from '../etudiant/etudiant.entity';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import { Etudiant } from "../etudiant/etudiant.entity";
 
 export enum ProfileRequestStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected'
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected",
 }
 
 @Entity()
 export class ProfileRequest {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @ManyToOne(() => Etudiant, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Etudiant, { onDelete: "CASCADE" })
   student: Etudiant;
 
   @Column()
@@ -40,9 +47,9 @@ export class ProfileRequest {
   contactEnCasDurgence?: string;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: ProfileRequestStatus,
-    default: ProfileRequestStatus.PENDING
+    default: ProfileRequestStatus.PENDING,
   })
   status: ProfileRequestStatus;
 
@@ -51,6 +58,17 @@ export class ProfileRequest {
 
   @Column({ nullable: true })
   processedById?: string;
+
+  @Column({ type: "jsonb", nullable: true })
+  changes?: {
+    personalEmail?: string;
+    phone?: string;
+    secondaryPhone?: string;
+    address?: string;
+    postalCode?: string;
+    city?: string;
+    emergencyContact?: string;
+  };
 
   @CreateDateColumn()
   createdAt: Date;
