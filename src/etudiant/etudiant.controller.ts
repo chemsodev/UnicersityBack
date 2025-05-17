@@ -34,13 +34,16 @@ import { diskStorage } from "multer";
 import * as path from "path";
 import * as fs from "fs";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ScheduleService } from "../schedules/schedules.service";
+import { ModuleRef } from "@nestjs/core";
 
 @Controller("etudiants")
 @UseGuards(JwtAuthGuard)
 export class EtudiantController {
   constructor(
     private readonly etudiantService: EtudiantService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly moduleRef: ModuleRef
   ) {}
 
   @Post()
@@ -69,31 +72,43 @@ export class EtudiantController {
         throw new UnauthorizedException("Utilisateur non authentifié");
       }
 
-      // First check if the student has a custom timetable uploaded
       const studentId = req.user.userId;
-      const uploadDir = path.join(process.cwd(), "uploads", "timetables");
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-        return { message: "Aucun emploi du temps disponible" };
+      
+      // Get student data with section info
+      const student = await this.etudiantService.findOne(studentId);
+      
+      if (!student || !student.sections || student.sections.length === 0) {
+        return { message: "Aucun emploi du temps disponible - étudiant sans section" };
       }
-
-      const files = fs.readdirSync(uploadDir);
-
-      // Look for any file starting with the student ID
-      const studentFile = files.find((f) => f.startsWith(`${studentId}-`));
-
-      if (studentFile) {
+      
+      // Get the student's first section
+      const sectionId = student.sections[0].id;
+      
+      try {
+        // Get the latest schedule for the student's section
+        const scheduleService = this.moduleRef.get(ScheduleService, { strict: false });
+        const latestSchedule = await scheduleService.findLatestBySection(sectionId);
+        
         return {
-          fileUrl: `/uploads/timetables/${studentFile}`,
-          fileName: studentFile.substring(studentId.length + 1),
-          fileSize: fs.statSync(path.join(uploadDir, studentFile)).size,
-          uploadDate: new Date().toISOString(),
+          id: latestSchedule.id,
+          title: latestSchedule.title,
+          scheduleType: latestSchedule.scheduleType,
+          description: latestSchedule.description,
+          documentName: latestSchedule.documentName,
+          documentUrl: `/api/schedules/${latestSchedule.id}/document`,
+          createdAt: latestSchedule.createdAt,
+          updatedAt: latestSchedule.updatedAt,
+          section: latestSchedule.section,
+          academicYear: latestSchedule.academicYear,
+          semester: latestSchedule.semester
+        };
+      } catch (error) {
+        console.log("No schedule found for section:", error.message);
+        return { 
+          message: "Aucun emploi du temps disponible pour votre section", 
+          sectionId 
         };
       }
-
-      // If no custom timetable, try to get the schedule from the database
-      return this.etudiantService.getSchedules(req.user.userId);
     } catch (error) {
       console.error("Error loading timetable:", error);
       if (error instanceof NotFoundException) {

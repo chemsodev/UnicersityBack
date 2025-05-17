@@ -1,21 +1,19 @@
-import { IsString, IsOptional, IsNumber, IsUUID } from "class-validator";
+import { 
+  IsString, 
+  IsOptional, 
+  IsNumber, 
+  IsEnum 
+} from "class-validator";
+import { ScheduleType } from "../entities/schedule.entity";
 
 export class UpdateScheduleDto {
   @IsString()
   @IsOptional()
-  day?: string;
+  title?: string;
 
   @IsString()
   @IsOptional()
-  startTime?: string;
-
-  @IsString()
-  @IsOptional()
-  endTime?: string;
-
-  @IsString()
-  @IsOptional()
-  room?: string;
+  description?: string;
 
   @IsString()
   @IsOptional()
@@ -23,9 +21,21 @@ export class UpdateScheduleDto {
 
   @IsNumber()
   @IsOptional()
-  enseignantId?: number;
+  uploadedById?: number;
 
+  @IsEnum(ScheduleType)
+  @IsOptional()
+  scheduleType?: ScheduleType;
+  
+  @IsString()
+  @IsOptional()
+  academicYear?: string;
+  
+  @IsString()
+  @IsOptional()
+  semester?: string;
+  
   @IsNumber()
   @IsOptional()
-  etudiantId?: number;
+  weekNumber?: number;
 }

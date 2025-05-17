@@ -4,46 +4,71 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Enseignant } from "../../enseignant/enseignant.entity";
-import { Etudiant } from "../../etudiant/etudiant.entity";
 import { Section } from "../../section/section.entity";
+
+export enum ScheduleType {
+  REGULAR = "regular",   // Regular weekly schedule
+  EXAM = "exam",         // Exam schedule
+  SPECIAL = "special",   // Special events
+}
 
 @Entity("schedules")
 export class Schedule {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
+
+  @Column({
+    type: "enum",
+    enum: ScheduleType,
+    default: ScheduleType.REGULAR
+  })
+  scheduleType: ScheduleType;
 
   @Column()
-  day: string;
+  title: string;
 
-  @Column({ name: "startTime", type: "time" })
-  startTime: Date;
+  @Column({ nullable: true })
+  description: string;
 
-  @Column({ name: "endTime", type: "time" })
-  endTime: Date;
+  @Column({ type: "bytea", name: "document_data", nullable: true })
+  documentData: Buffer;
 
-  @Column()
-  room: string;
+  @Column({ name: "document_name", nullable: true })
+  documentName: string;
+
+  @Column({ name: "document_mime_type", nullable: true })
+  documentMimeType: string;
 
   @ManyToOne(() => Section)
   @JoinColumn({ name: "sectionId" })
   section: Section;
 
   @Column({ nullable: true })
-  sectionId?: string;
+  sectionId: string;
 
-  @ManyToOne(() => Enseignant, (enseignant) => enseignant.schedules)
-  @JoinColumn({ name: "enseignantId" })
-  enseignant: Enseignant;
-
-  @Column({ nullable: true })
-  enseignantId?: number;
-
-  @ManyToOne(() => Etudiant, (etudiant) => etudiant.schedules)
-  @JoinColumn({ name: "etudiantId" })
-  etudiant: Etudiant;
+  @ManyToOne(() => Enseignant)
+  @JoinColumn({ name: "uploadedById" })
+  uploadedBy: Enseignant;
 
   @Column({ nullable: true })
-  etudiantId?: number;
+  uploadedById: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  academicYear: string;
+
+  @Column({ nullable: true })
+  semester: string;
+
+  @Column({ nullable: true })
+  weekNumber: number;
 }

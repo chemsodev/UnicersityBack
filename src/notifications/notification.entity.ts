@@ -11,6 +11,7 @@ export enum NotificationType {
   ADMIN = "admin",
   COURS = "cours",
   EXAMEN = "examen",
+  EMPLOI_DU_TEMPS = "emploi_du_temps",
 }
 
 @Entity("notifications")

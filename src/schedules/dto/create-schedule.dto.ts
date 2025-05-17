@@ -3,32 +3,40 @@ import {
   IsNotEmpty,
   IsOptional,
   IsNumber,
-  IsUUID,
+  IsEnum,
 } from "class-validator";
+import { ScheduleType } from "../entities/schedule.entity";
 
 export class CreateScheduleDto {
   @IsString()
-  day: string;
+  @IsNotEmpty()
+  title: string;
 
   @IsString()
-  startTime: string;
+  @IsOptional()
+  description?: string;
 
   @IsString()
-  endTime: string;
-
-  @IsString()
-  room: string;
-
-  @IsNumber()
-  moduleId: number;
-
-  @IsString()
+  @IsNotEmpty()
   sectionId: string;
 
   @IsNumber()
-  enseignantId: number;
+  @IsOptional()
+  uploadedById?: number;
 
+  @IsEnum(ScheduleType)
+  @IsOptional()
+  scheduleType?: ScheduleType;
+  
+  @IsString()
+  @IsOptional()
+  academicYear?: string;
+  
+  @IsString()
+  @IsOptional()
+  semester?: string;
+  
   @IsNumber()
   @IsOptional()
-  etudiantId?: number;
+  weekNumber?: number;
 }

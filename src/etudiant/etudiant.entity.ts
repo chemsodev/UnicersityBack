@@ -58,6 +58,5 @@ export class Etudiant extends User {
   @OneToMany(() => Note, (note) => note.etudiant)
   notesReleve: Note[];
 
-  @OneToMany(() => Schedule, (schedule) => schedule.etudiant)
-  schedules: Schedule[];
+  // Schedule relationship removed - students now access schedules through their section
 }
