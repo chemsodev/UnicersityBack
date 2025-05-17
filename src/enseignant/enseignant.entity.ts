@@ -28,7 +28,7 @@ export class Enseignant extends User {
   })
   modules: StudyModule[];
 
-  @OneToMany(() => Schedule, (schedule) => schedule.enseignant)
+  @OneToMany(() => Schedule, (schedule) => schedule.uploadedBy)
   schedules: Schedule[];
 
   @OneToMany(() => SectionResponsable, (responsable) => responsable.enseignant)

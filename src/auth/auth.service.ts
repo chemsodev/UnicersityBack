@@ -83,8 +83,8 @@ export class AuthService {
 
   // For Teacher Login
   async loginEnseignant(dto: LoginDto) {
-    if (!dto.email && !dto.matricule) {
-      throw new UnauthorizedException("Email or matricule required");
+    if (!dto.email && !dto.id_enseignant) {
+      throw new UnauthorizedException("Email or teacher ID required");
     }
     let teacher: Enseignant;
 
@@ -104,18 +104,23 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
+    // Create a token with explicit role information
+    const tokenPayload = {
+      userId: teacher.id,
+      email: teacher.email,
+      teacherId: teacher.id_enseignant,
+      role: AdminRole.ENSEIGNANT,   // Set explicit role
+      userType: "enseignant"
+    };
+
     return {
-      access_token: this.jwtService.sign({
-        userId: teacher.id,
-        email: teacher.email,
-        teacherId: teacher.id_enseignant,
-        adminRole: AdminRole.ENSEIGNANT,
-        userType: "enseignant",
-      }),
+      access_token: this.jwtService.sign(tokenPayload),
       user: {
         id: teacher.id,
         email: teacher.email,
         teacherId: teacher.id_enseignant,
+        role: AdminRole.ENSEIGNANT,
+        userType: "enseignant"
       },
     };
   }

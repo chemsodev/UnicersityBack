@@ -36,6 +36,7 @@ import * as fs from "fs";
 import { NotificationsService } from "../notifications/notifications.service";
 import { ScheduleService } from "../schedules/schedules.service";
 import { ModuleRef } from "@nestjs/core";
+import { EnseignantService } from "../enseignant/enseignant.service";
 
 @Controller("etudiants")
 @UseGuards(JwtAuthGuard)
@@ -43,7 +44,8 @@ export class EtudiantController {
   constructor(
     private readonly etudiantService: EtudiantService,
     private readonly notificationsService: NotificationsService,
-    private readonly moduleRef: ModuleRef
+    private readonly moduleRef: ModuleRef,
+    private readonly enseignantService: EnseignantService
   ) {}
 
   @Post()
@@ -56,13 +58,36 @@ export class EtudiantController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
+  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT, AdminRole.ENSEIGNANT)
   async findAll(
+    @Request() req,
     @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
     @Query("search") search?: string
   ) {
+    const user = req.user;
+
+    if (!user || !user.adminRole) {
+      throw new UnauthorizedException("User role not defined.");
+    }
+
+    if (user.adminRole === AdminRole.ENSEIGNANT) {
+      if (!user.userId) {
+        throw new UnauthorizedException("User ID not found for teacher.");
+      }
+      const teacherId = parseInt(user.userId, 10); 
+      if (isNaN(teacherId)) {
+        throw new BadRequestException("Invalid teacher ID format.");
+      }
+      return this.enseignantService.getStudentsForTeacher(teacherId, page, limit, search);
+    } else if (
+      user.adminRole === AdminRole.SECRETAIRE ||
+      user.adminRole === AdminRole.CHEF_DE_DEPARTEMENT
+  ) {
     return this.etudiantService.findAll(page, limit, search);
+    } else {
+      throw new UnauthorizedException("Insufficient permissions to view student list.");
+    }
   }
 
   @Get("timetable")
@@ -214,11 +239,55 @@ export class EtudiantController {
   @Get(":id")
   @UseGuards(RolesGuard)
   async findOne(@Param("id") id: string, @Request() req) {
-    if (req.user.adminRole === "etudiant" && req.user.userId !== id) {
+    // More comprehensive debug logging
+    console.log("findOne student profile request:", {
+      requestedId: id,
+      user: req.user,
+      requestPath: req.path,
+      authHeader: req.headers?.authorization ? 'Present' : 'Missing'
+    });
+
+    // Handle numeric conversion - some IDs may be stored as numbers in one place and strings in another
+    let userIdString = String(req.user.userId || '');
+    let idString = String(id || '');
+    
+    // Try also as number
+    const userIdNum = parseInt(userIdString, 10);
+    const idNum = parseInt(idString, 10);
+    
+    // If both are valid numbers and they're equal numerically, consider them a match
+    const numericMatch = !isNaN(userIdNum) && !isNaN(idNum) && userIdNum === idNum;
+    // Direct string match
+    const stringMatch = userIdString === idString;
+    
+    // Check if user is a student by either adminRole or userType
+    const isStudent = req.user.adminRole === "etudiant" || req.user.userType === "etudiant";
+    
+    // Non-students (admin users) can view any profile
+    if (!isStudent) {
+      console.log("Admin access granted: non-student user accessing profile");
+      return this.etudiantService.findOne(id);
+    }
+    
+    // Students can only view their own profiles
+    if (!stringMatch && !numericMatch) {
+      console.log("Access denied: student attempting to view another profile", {
+        studentId: userIdString,
+        numericStudentId: userIdNum,
+        attemptingToView: idString,
+        numericRequestedId: idNum,
+        stringMatch,
+        numericMatch
+      });
       throw new UnauthorizedException(
         "Vous ne pouvez voir que votre propre profil"
       );
     }
+    
+    console.log("Access granted: student viewing own profile", {
+      stringMatch,
+      numericMatch
+    });
     return this.etudiantService.findOne(id);
   }
 

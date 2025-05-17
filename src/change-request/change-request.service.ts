@@ -304,6 +304,13 @@ export class ChangeRequestService {
     });
   }
 
+  // Get group by ID for validation
+  async getGroupById(groupId: string): Promise<Groupe> {
+    return this.groupeRepo.findOne({
+      where: { id: groupId }
+    });
+  }
+
   private getStatusFrench(status: RequestStatus): string {
     switch (status) {
       case RequestStatus.APPROVED:

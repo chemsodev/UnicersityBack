@@ -14,6 +14,7 @@ import { extname } from "path";
 import { v4 as uuidv4 } from "uuid";
 import { Schedule } from "../schedules/entities/schedule.entity";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { EnseignantModule } from "../enseignant/enseignant.module";
 
 @Module({
   imports: [
@@ -21,9 +22,17 @@ import { NotificationsModule } from "../notifications/notifications.module";
     AuthModule,
     NotificationsModule,
     JwtModule,
+    EnseignantModule,
     MulterModule.register({
       storage: diskStorage({
-        destination: "./uploads/profiles",
+        destination: (req, file, callback) => {
+          const uploadPath = './uploads/profiles';
+          // Create directory if it doesn't exist
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+          }
+          callback(null, uploadPath);
+        },
         filename: (req, file, callback) => {
           const uniqueSuffix = `${Date.now()}-${Math.round(
             Math.random() * 1e9

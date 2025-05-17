@@ -219,14 +219,79 @@ export class ChangeRequestController {
         throw new BadRequestException("Missing required fields for group change request");
       }
       
+      // Ensure the request type matches (both TD or both TP)
+      const requestType = body.requestType === "groupe_td" ? 
+        RequestType.GROUPE_TD : RequestType.GROUPE_TP;
+      
+      // Validate that the current and requested groups match the request type
+      if (requestType === RequestType.GROUPE_TD) {
+        // For TD group changes, validate current and requested are both TD groups
+        const currentGroup = await this.service.getGroupById(body.currentId);
+        const requestedGroup = await this.service.getGroupById(body.requestedId);
+        
+        if (!currentGroup || !requestedGroup) {
+          throw new BadRequestException("One or both of the specified groups were not found");
+        }
+        
+        // For TD groups, verify by checking if name contains "TD" or type is 'td'
+        const isCurrentTD = currentGroup.type === 'td' || currentGroup.name.toLowerCase().includes('td');
+        const isRequestedTD = requestedGroup.type === 'td' || requestedGroup.name.toLowerCase().includes('td');
+        
+        console.log("TD group validation:", {
+          currentGroup: {
+            id: currentGroup.id,
+            name: currentGroup.name,
+            type: currentGroup.type,
+            isValid: isCurrentTD
+          },
+          requestedGroup: {
+            id: requestedGroup.id,
+            name: requestedGroup.name,
+            type: requestedGroup.type,
+            isValid: isRequestedTD
+          }
+        });
+        
+        if (!isCurrentTD || !isRequestedTD) {
+          throw new BadRequestException("Pour un changement de groupe TD, le groupe actuel et le groupe demandé doivent être des groupes TD");
+        }
+      } else if (requestType === RequestType.GROUPE_TP) {
+        // For TP group changes, validate current and requested are both TP groups
+        const currentGroup = await this.service.getGroupById(body.currentId);
+        const requestedGroup = await this.service.getGroupById(body.requestedId);
+        
+        if (!currentGroup || !requestedGroup) {
+          throw new BadRequestException("One or both of the specified groups were not found");
+        }
+        
+        // For TP groups, check either database type or name contains "TP" due to data inconsistency
+        const isCurrentTP = currentGroup.type === 'tp' || currentGroup.name.toLowerCase().includes('tp');
+        const isRequestedTP = requestedGroup.type === 'tp' || requestedGroup.name.toLowerCase().includes('tp');
+        
+        console.log("TP group validation:", {
+          currentGroup: {
+            id: currentGroup.id,
+            name: currentGroup.name,
+            type: currentGroup.type,
+            isValid: isCurrentTP
+          },
+          requestedGroup: {
+            id: requestedGroup.id,
+            name: requestedGroup.name,
+            type: requestedGroup.type,
+            isValid: isRequestedTP
+          }
+        });
+        
+        if (!isCurrentTP || !isRequestedTP) {
+          throw new BadRequestException("Pour un changement de groupe TP, le groupe actuel et le groupe demandé doivent être des groupes TP");
+        }
+      }
+      
       // Store file in memory instead of on disk
       const documentData = document ? document.buffer : null;
       const documentName = document ? document.originalname : null;
       const documentMimeType = document ? document.mimetype : null;
-      
-      // Create a standard DTO from the group-specific data
-      const requestType = body.requestType === "groupe_td" ? 
-        RequestType.GROUPE_TD : RequestType.GROUPE_TP;
       
       console.log("Parsed request type:", requestType);
       

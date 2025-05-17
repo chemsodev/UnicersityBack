@@ -55,11 +55,6 @@ export class EtudiantService {
         .createQueryBuilder("etudiant")
         .leftJoinAndSelect("etudiant.sections", "sections")
         .leftJoinAndSelect("etudiant.notesReleve", "notesReleve")
-        .leftJoinAndSelect(
-          "etudiant.schedules",
-          "schedules",
-          "schedules.etudiantId = etudiant.id"
-        )
         .leftJoinAndSelect("etudiant.tdGroupe", "tdGroupe")
         .leftJoinAndSelect("etudiant.tpGroupe", "tpGroupe")
         .leftJoinAndSelect("sections.department", "department")
@@ -221,15 +216,41 @@ export class EtudiantService {
     return etudiant.notesReleve;
   }
 
-  async getSchedules(id: string): Promise<Schedule[]> {
+  async getSchedules(id: string): Promise<any[]> {
     const entityId = toNumberOrStringId(id);
+    
     const etudiant = await this.etudiantRepo.findOne({
       where: { id: entityId as any },
-      relations: ["schedules"],
+      relations: ["sections"],
     });
+    
     if (!etudiant) {
       throw new NotFoundException(`Étudiant avec l'ID ${id} non trouvé`);
     }
-    return etudiant.schedules;
+    
+    // Get schedules directly from the section repository since there's an issue
+    // with the uploadedById column not existing in the database
+    if (!etudiant.sections || etudiant.sections.length === 0) {
+      return [];
+    }
+    
+    // Get section IDs
+    const sectionIds = etudiant.sections.map(section => section.id);
+    
+    // Query the schedule repository directly
+    try {
+      // Get schedules by section ID
+      const schedules = await this.etudiantRepo.manager
+        .createQueryBuilder(Schedule, "schedule")
+        .innerJoin("schedule.section", "section")
+        .where("section.id IN (:...sectionIds)", { sectionIds })
+        .orderBy("schedule.createdAt", "DESC")
+        .getMany();
+        
+      return schedules;
+    } catch (error) {
+      console.error(`Error fetching schedules: ${error.message}`);
+      return [];
+    }
   }
 }

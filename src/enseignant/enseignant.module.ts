@@ -6,11 +6,32 @@ import { EnseignantService } from './enseignant.service';
 import { Schedule } from '../schedules/entities/schedule.entity';
 import { StudyModule } from '../modules/modules.entity';
 import { StudyModuleModule } from '../modules/modules.module';
+import { Section } from '../section/section.entity';
+import { SectionResponsable } from '../section/section-responsable.entity';
+import { Etudiant } from '../etudiant/etudiant.entity';
+import { ChangeRequest } from '../change-request/change-request.entity';
+import { Groupe } from '../groupe/groupe.entity';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Enseignant, Schedule, StudyModule]),
-        StudyModuleModule
+        ConfigModule.forRoot(),
+        TypeOrmModule.forFeature([
+            Enseignant, 
+            Schedule, 
+            StudyModule, 
+            Section, 
+            SectionResponsable, 
+            Etudiant,
+            ChangeRequest,
+            Groupe
+        ]),
+        StudyModuleModule,
+        JwtModule.register({
+            secret: process.env.JWT_SECRET || 'secretKey',
+            signOptions: { expiresIn: '60h' },
+        }),
     ],
     controllers: [EnseignantController],
     providers: [EnseignantService],

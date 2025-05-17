@@ -32,10 +32,10 @@ export class AuthController {
       throw new UnauthorizedException('Invalid token');
     }
     return {
-      userId: req.user.userId, // Changed from sub to userId
+      userId: req.user.userId,
       email: req.user.email,
-      adminRole: req.user.role, // Key fix: use 'role' from token payload
-      userType: req.user.userType
+      adminRole: req.user.adminRole || req.user.role,
+      userType: req.user.userType || req.user.type
     };
   }
   @Options('*')
