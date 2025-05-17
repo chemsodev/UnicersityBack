@@ -33,11 +33,15 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import * as path from "path";
 import * as fs from "fs";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Controller("etudiants")
 @UseGuards(JwtAuthGuard)
 export class EtudiantController {
-  constructor(private readonly etudiantService: EtudiantService) {}
+  constructor(
+    private readonly etudiantService: EtudiantService,
+    private readonly notificationsService: NotificationsService
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -58,57 +62,6 @@ export class EtudiantController {
     return this.etudiantService.findAll(page, limit, search);
   }
 
-  @Get(":id")
-  @UseGuards(RolesGuard)
-  async findOne(@Param("id") id: string, @Request() req) {
-    if (req.user.userType === "etudiant" && req.user.userId !== id) {
-      throw new UnauthorizedException(
-        "Vous ne pouvez voir que votre propre profil"
-      );
-    }
-    return this.etudiantService.findOne(id);
-  }
-
-  @Patch(":id")
-  @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE)
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async update(
-    @Param("id") id: string,
-    @Body() updateEtudiantDto: UpdateEtudiantDto
-  ): Promise<Etudiant> {
-    return await this.etudiantService.update(id, updateEtudiantDto);
-  }
-
-  @Delete(":id")
-  @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.DOYEN)
-  async remove(@Param("id") id: string): Promise<void> {
-    await this.etudiantService.remove(id);
-  }
-
-  @Get(":id/notes")
-  @UseGuards(RolesGuard)
-  async getNotes(@Param("id") id: string, @Request() req) {
-    if (req.user.userType === "etudiant" && req.user.userId !== id) {
-      throw new UnauthorizedException(
-        "Vous ne pouvez voir que vos propres notes"
-      );
-    }
-    return this.etudiantService.getStudentNotes(id);
-  }
-
-  @Get(":id/schedule")
-  @UseGuards(RolesGuard)
-  async getSchedule(@Param("id") id: string, @Request() req) {
-    if (req.user.userType === "etudiant" && req.user.userId !== id) {
-      throw new UnauthorizedException(
-        "Vous ne pouvez voir que votre propre emploi du temps"
-      );
-    }
-    return this.etudiantService.getSchedules(id);
-  }
-
   @Get("timetable")
   async getTimetable(@Request() req) {
     try {
@@ -117,7 +70,7 @@ export class EtudiantController {
       }
 
       // First check if the student has a custom timetable uploaded
-      const studentId = req.user.id;
+      const studentId = req.user.userId;
       const uploadDir = path.join(process.cwd(), "uploads", "timetables");
 
       if (!fs.existsSync(uploadDir)) {
@@ -134,11 +87,13 @@ export class EtudiantController {
         return {
           fileUrl: `/uploads/timetables/${studentFile}`,
           fileName: studentFile.substring(studentId.length + 1),
+          fileSize: fs.statSync(path.join(uploadDir, studentFile)).size,
+          uploadDate: new Date().toISOString(),
         };
       }
 
       // If no custom timetable, try to get the schedule from the database
-      return this.etudiantService.getSchedules(req.user.id);
+      return this.etudiantService.getSchedules(req.user.userId);
     } catch (error) {
       console.error("Error loading timetable:", error);
       if (error instanceof NotFoundException) {
@@ -168,8 +123,8 @@ export class EtudiantController {
 
           // Clean the original filename
           const originalName = file.originalname.replace(/\s+/g, "_");
-          // Use either the user id or 'unknown' if id is not present
-          const userId = req.user.id || "unknown";
+          // Use the user id
+          const userId = req.user.userId || "unknown";
           const filename = `${userId}-${originalName}`;
           cb(null, filename);
         },
@@ -206,6 +161,9 @@ export class EtudiantController {
     return {
       fileUrl: `/uploads/timetables/${file.filename}`,
       fileName: file.originalname,
+      fileSize: file.size,
+      uploadDate: new Date().toISOString(),
+      fileType: file.mimetype,
     };
   }
 
@@ -215,7 +173,7 @@ export class EtudiantController {
       throw new UnauthorizedException("User not authenticated");
     }
 
-    const studentId = req.user.id;
+    const studentId = req.user.userId;
     const uploadDir = path.join(process.cwd(), "uploads", "timetables");
 
     try {
@@ -236,5 +194,61 @@ export class EtudiantController {
         "Error deleting timetable: " + error.message
       );
     }
+  }
+
+  @Get(":id")
+  @UseGuards(RolesGuard)
+  async findOne(@Param("id") id: string, @Request() req) {
+    if (req.user.adminRole === "etudiant" && req.user.userId !== id) {
+      throw new UnauthorizedException(
+        "Vous ne pouvez voir que votre propre profil"
+      );
+    }
+    return this.etudiantService.findOne(id);
+  }
+
+  @Patch(":id")
+  @UseGuards(RolesGuard)
+  @Roles(AdminRole.SECRETAIRE)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async update(
+    @Param("id") id: string,
+    @Body() updateEtudiantDto: UpdateEtudiantDto
+  ): Promise<Etudiant> {
+    return await this.etudiantService.update(id, updateEtudiantDto);
+  }
+
+  @Delete(":id")
+  @UseGuards(RolesGuard)
+  @Roles(AdminRole.SECRETAIRE, AdminRole.DOYEN)
+  async remove(@Param("id") id: string): Promise<void> {
+    await this.etudiantService.remove(id);
+  }
+
+  @Get(":id/notes")
+  @UseGuards(RolesGuard)
+  async getNotes(@Param("id") id: string, @Request() req) {
+    if (req.user.adminRole === "etudiant" && req.user.userId !== id) {
+      throw new UnauthorizedException(
+        "Vous ne pouvez voir que vos propres notes"
+      );
+    }
+    return this.etudiantService.getStudentNotes(id);
+  }
+
+  @Get(":id/schedule")
+  @UseGuards(RolesGuard)
+  async getSchedule(@Param("id") id: string, @Request() req) {
+    if (req.user.adminRole === "etudiant" && req.user.userId !== id) {
+      throw new UnauthorizedException(
+        "Vous ne pouvez voir que votre propre emploi du temps"
+      );
+    }
+    return this.etudiantService.getSchedules(id);
+  }
+
+  @Get(":id/notifications")
+  async getNotifications(@Param("id") id: string) {
+    return this.notificationsService.findAllForUser(id);
   }
 }

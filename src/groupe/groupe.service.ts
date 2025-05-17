@@ -5,13 +5,14 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Groupe, GroupeType } from "./groupe.entity";
-import { Repository } from "typeorm";
+import { Repository, In } from "typeorm";
 import { Section } from "src/section/section.entity";
 import { CreateGroupeDto } from "./dto/create-groupe.dto";
 import { UpdateGroupeDto } from "./dto/update-groupe.dto";
 import { NotificationsService } from "../notifications/notifications.service";
 import { NotificationType } from "../notifications/notification.entity";
 import { Etudiant } from "../etudiant/etudiant.entity";
+import { toNumberOrStringId } from "../utils/id-conversion.util";
 
 @Injectable()
 export class GroupeService {
@@ -161,8 +162,10 @@ export class GroupeService {
     studentId: string,
     groupId: string
   ): Promise<Groupe> {
+    const entityId = toNumberOrStringId(studentId);
+
     const student = await this.etudiantRepo.findOne({
-      where: { id: studentId },
+      where: { id: entityId as any },
       relations: ["tdGroupe", "tpGroupe"],
     });
 
@@ -220,8 +223,10 @@ export class GroupeService {
     studentId: string,
     groupId: string
   ): Promise<Groupe> {
+    const entityId = toNumberOrStringId(studentId);
+
     const student = await this.etudiantRepo.findOne({
-      where: { id: studentId },
+      where: { id: entityId as any },
       relations: ["tdGroupe", "tpGroupe"],
     });
 

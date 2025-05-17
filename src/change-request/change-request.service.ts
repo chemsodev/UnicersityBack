@@ -20,6 +20,7 @@ import { Groupe } from "../groupe/groupe.entity";
 import { NotificationsService } from "../notifications/notifications.service";
 import { NotificationType } from "../notifications/notification.entity";
 import { v4 as uuidv4 } from "uuid";
+import { toNumberOrStringId } from "../utils/id-conversion.util";
 
 @Injectable()
 export class ChangeRequestService {
@@ -40,7 +41,8 @@ export class ChangeRequestService {
     createDto: CreateChangeRequestDto,
     documentPath: string = null
   ): Promise<ChangeRequest> {
-    const etudiant = await this.etudiantRepo.findOneBy({ id: etudiantId });
+    const entityId = toNumberOrStringId(etudiantId);
+    const etudiant = await this.etudiantRepo.findOneBy({ id: entityId as any });
     if (!etudiant) throw new NotFoundException("Student not found");
 
     const request = new ChangeRequest();
@@ -211,8 +213,10 @@ export class ChangeRequestService {
 
   // Helper to apply approved changes
   private async applyApprovedRequest(request: ChangeRequest): Promise<void> {
+    const entityId = toNumberOrStringId(request.studentId);
+
     const student = await this.etudiantRepo.findOne({
-      where: { id: request.studentId },
+      where: { id: entityId as any },
       relations: ["sections", "tdGroupe", "tpGroupe"],
     });
 

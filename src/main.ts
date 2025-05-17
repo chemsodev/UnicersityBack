@@ -3,6 +3,9 @@ import { AppModule } from "./app.module";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { join } from "path";
 import * as express from "express";
+import { DataSource } from "typeorm";
+import { createSectionResponsablesTable } from "./data-migrations/create-section-responsables-table";
+import { addEnseignantsAndResponsables } from "./data-migrations/add-enseignants-and-responsables";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -24,6 +27,20 @@ async function bootstrap() {
     res.header("Access-Control-Expose-Headers", "Authorization");
     next();
   });
+
+  // Run migrations
+  const dataSource = app.get(DataSource);
+  try {
+    // First create the section_responsables table if needed
+    await createSectionResponsablesTable(dataSource);
+
+    // Then add enseignants and assign them as responsables
+    await addEnseignantsAndResponsables(dataSource);
+
+    console.log("Migrations completed successfully");
+  } catch (error) {
+    console.error("Migration error:", error);
+  }
 
   // Serve static files from the uploads directory
   const uploadsDir = join(process.cwd(), "uploads");

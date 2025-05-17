@@ -12,6 +12,7 @@ export enum ProfileRequestStatus {
   PENDING = "pending",
   APPROVED = "approved",
   REJECTED = "rejected",
+  CANCELLED = "cancelled",
 }
 
 @Entity()

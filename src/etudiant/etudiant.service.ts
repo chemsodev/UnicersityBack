@@ -13,6 +13,7 @@ import {
 } from "./dto/create-etudiant.dto";
 import { Schedule } from "../schedules/entities/schedule.entity";
 import { Groupe } from "../groupe/groupe.entity";
+import { toNumberOrStringId } from "../utils/id-conversion.util";
 
 @Injectable()
 export class EtudiantService {
@@ -131,7 +132,12 @@ export class EtudiantService {
     id: string,
     updateEtudiantDto: UpdateEtudiantDto
   ): Promise<Etudiant> {
-    const existingEtudiant = await this.etudiantRepo.findOne({ where: { id } });
+    // Convert to appropriate ID type (TypeORM decides whether to use string or number)
+    const entityId = toNumberOrStringId(id);
+
+    const existingEtudiant = await this.etudiantRepo.findOne({
+      where: { id: entityId as any },
+    });
 
     if (!existingEtudiant) {
       throw new NotFoundException(`Étudiant avec l'ID ${id} non trouvé`);
@@ -166,13 +172,13 @@ export class EtudiantService {
     }
 
     try {
-      await this.etudiantRepo.update(id, updateEtudiantDto);
+      await this.etudiantRepo.update(entityId, updateEtudiantDto);
       const updatedEtudiant = await this.etudiantRepo
         .createQueryBuilder("etudiant")
         .leftJoinAndSelect("etudiant.sections", "sections")
         .leftJoinAndSelect("etudiant.notesReleve", "notesReleve")
         .leftJoinAndSelect("etudiant.schedules", "schedules")
-        .where("etudiant.id = :id", { id })
+        .where("etudiant.id = :id", { id: entityId })
         .getOne();
 
       if (!updatedEtudiant) {
@@ -193,7 +199,8 @@ export class EtudiantService {
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.etudiantRepo.delete(id);
+    const entityId = toNumberOrStringId(id);
+    const result = await this.etudiantRepo.delete(entityId);
 
     if (result.affected === 0) {
       throw new NotFoundException(`Étudiant avec l'ID ${id} non trouvé`);
@@ -201,8 +208,9 @@ export class EtudiantService {
   }
 
   async getStudentNotes(id: string) {
+    const entityId = toNumberOrStringId(id);
     const etudiant = await this.etudiantRepo.findOne({
-      where: { id },
+      where: { id: entityId as any },
       relations: ["notesReleve"],
     });
 
@@ -214,8 +222,9 @@ export class EtudiantService {
   }
 
   async getSchedules(id: string): Promise<Schedule[]> {
+    const entityId = toNumberOrStringId(id);
     const etudiant = await this.etudiantRepo.findOne({
-      where: { id },
+      where: { id: entityId as any },
       relations: ["schedules"],
     });
     if (!etudiant) {

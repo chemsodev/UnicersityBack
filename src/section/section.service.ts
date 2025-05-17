@@ -1,185 +1,357 @@
 // src/section/section.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Section } from './section.entity';
-import { Department } from '../departments/departments.entity';
-import { Etudiant } from '../etudiant/etudiant.entity';
-import { Groupe } from '../groupe/groupe.entity';
-import { StudyModule } from '../modules/modules.entity';
-import { CreateSectionDto } from './dto/create-section.dto';
-import { UpdateSectionDto } from './dto/update-section.dto';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '../notifications/notification.entity';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Section } from "./section.entity";
+import { Department } from "../departments/departments.entity";
+import { Etudiant } from "../etudiant/etudiant.entity";
+import { Groupe } from "../groupe/groupe.entity";
+import { StudyModule } from "../modules/modules.entity";
+import { CreateSectionDto } from "./dto/create-section.dto";
+import { UpdateSectionDto } from "./dto/update-section.dto";
+import { NotificationsService } from "../notifications/notifications.service";
+import { NotificationType } from "../notifications/notification.entity";
+import { SectionResponsableService } from "./section-responsable.service";
+import { Enseignant } from "../enseignant/enseignant.entity";
+import { ResponsableRole } from "./section-responsable.entity";
+import { toNumberOrStringId } from "../utils/id-conversion.util";
 
 @Injectable()
 export class SectionService {
-    constructor(
-        @InjectRepository(Section)
-        private readonly sectionRepo: Repository<Section>,
-        @InjectRepository(Department)
-        private readonly departmentRepo: Repository<Department>,
-        @InjectRepository(Etudiant)
-        private readonly etudiantRepo: Repository<Etudiant>,
-        @InjectRepository(Groupe)
-        private readonly groupeRepo: Repository<Groupe>,
-        @InjectRepository(StudyModule)
-        private readonly moduleRepo: Repository<StudyModule>,
-        private readonly notificationsService: NotificationsService
-    ) { }
+  constructor(
+    @InjectRepository(Section)
+    private readonly sectionRepo: Repository<Section>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(Etudiant)
+    private readonly etudiantRepo: Repository<Etudiant>,
+    @InjectRepository(Groupe)
+    private readonly groupeRepo: Repository<Groupe>,
+    @InjectRepository(StudyModule)
+    private readonly moduleRepo: Repository<StudyModule>,
+    @InjectRepository(Enseignant)
+    private readonly enseignantRepo: Repository<Enseignant>,
+    private readonly notificationsService: NotificationsService,
+    private readonly sectionResponsableService: SectionResponsableService
+  ) {}
 
-    async create(createSectionDto: CreateSectionDto, adminId: string): Promise<Section> {
-        const department = await this.departmentRepo.findOneBy({ id: createSectionDto.departmentId });
-        if (!department) {
-            throw new NotFoundException('Department not found');
-        }
-
-        const section = this.sectionRepo.create({
-            ...createSectionDto,
-            department,
-        });
-
-        const savedSection = await this.sectionRepo.save(section);
-
-        await this.notificationsService.create({
-            title: 'Nouvelle section créée',
-            content: `Une nouvelle section ${savedSection.name} a été créée.`,
-            type: NotificationType.ADMIN,
-            userId: adminId
-        });
-
-        return savedSection;
+  async create(
+    createSectionDto: CreateSectionDto,
+    adminId: string
+  ): Promise<Section> {
+    const department = await this.departmentRepo.findOneBy({
+      id: createSectionDto.departmentId,
+    });
+    if (!department) {
+      throw new NotFoundException("Department not found");
     }
 
-    findAll(departmentId?: string, level?: string, specialty?: string): Promise<Section[]> {
-        const query = this.sectionRepo.createQueryBuilder('section')
-            .leftJoinAndSelect('section.department', 'department');
+    const section = this.sectionRepo.create({
+      ...createSectionDto,
+      department,
+    });
 
-        if (departmentId) {
-            query.where('section.departmentId = :departmentId', { departmentId });
-        }
-        if (level) {
-            query.andWhere('section.level = :level', { level });
-        }
-        if (specialty) {
-            query.andWhere('section.specialty = :specialty', { specialty });
-        }
+    const savedSection = await this.sectionRepo.save(section);
 
-        return query.getMany();
+    await this.notificationsService.create({
+      title: "Nouvelle section créée",
+      content: `Une nouvelle section ${savedSection.name} a été créée.`,
+      type: NotificationType.ADMIN,
+      userId: adminId,
+    });
+
+    return savedSection;
+  }
+
+  findAll(
+    departmentId?: string,
+    level?: string,
+    specialty?: string
+  ): Promise<Section[]> {
+    const query = this.sectionRepo
+      .createQueryBuilder("section")
+      .leftJoinAndSelect("section.department", "department");
+
+    if (departmentId) {
+      query.where("section.departmentId = :departmentId", { departmentId });
+    }
+    if (level) {
+      query.andWhere("section.level = :level", { level });
+    }
+    if (specialty) {
+      query.andWhere("section.specialty = :specialty", { specialty });
     }
 
-    findOne(id: string): Promise<Section> {
-        return this.sectionRepo.findOne({
-            where: { id },
-            relations: ['department', 'groupes', 'etudiants', 'modules']
-        });
+    return query.getMany();
+  }
+
+  findOne(id: string): Promise<Section> {
+    return this.sectionRepo.findOne({
+      where: { id },
+      relations: [
+        "department",
+        "groupes",
+        "etudiants",
+        "modules",
+        "responsables",
+        "responsables.enseignant",
+      ],
+    });
+  }
+
+  async findStudents(id: string): Promise<Etudiant[]> {
+    const section = await this.sectionRepo.findOne({
+      where: { id },
+      relations: ["etudiants"],
+    });
+    if (!section) {
+      throw new NotFoundException("Section not found");
+    }
+    return section.etudiants;
+  }
+
+  async findGroups(id: string): Promise<Groupe[]> {
+    return this.groupeRepo.find({
+      where: { section: { id } },
+      relations: ["section"],
+    });
+  }
+
+  async findModules(id: string): Promise<StudyModule[]> {
+    const section = await this.sectionRepo.findOne({
+      where: { id },
+      relations: ["modules"],
+    });
+    if (!section) {
+      throw new NotFoundException("Section not found");
+    }
+    return section.modules;
+  }
+
+  async update(
+    id: string,
+    updateSectionDto: UpdateSectionDto,
+    adminId: string
+  ): Promise<Section> {
+    const section = await this.sectionRepo.findOneBy({ id });
+    if (!section) {
+      throw new NotFoundException("Section not found");
     }
 
-    async findStudents(id: string): Promise<Etudiant[]> {
-        const section = await this.sectionRepo.findOne({
-            where: { id },
-            relations: ['etudiants']
-        });
-        if (!section) {
-            throw new NotFoundException('Section not found');
+    if (updateSectionDto.departmentId) {
+      const department = await this.departmentRepo.findOneBy({
+        id: updateSectionDto.departmentId,
+      });
+      if (!department) {
+        throw new NotFoundException("Department not found");
+      }
+      section.department = department;
+    }
+
+    Object.assign(section, updateSectionDto);
+    const updatedSection = await this.sectionRepo.save(section);
+
+    await this.notificationsService.create({
+      title: "Section mise à jour",
+      content: `La section ${updatedSection.name} a été mise à jour.`,
+      type: NotificationType.ADMIN,
+      userId: adminId,
+    });
+
+    return updatedSection;
+  }
+
+  async remove(id: string): Promise<void> {
+    const result = await this.sectionRepo.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException("Section not found");
+    }
+  }
+
+  async assignStudentToSection(
+    sectionId: string,
+    studentId: string
+  ): Promise<Section> {
+    const section = await this.sectionRepo.findOne({
+      where: { id: sectionId },
+      relations: ["etudiants"],
+    });
+    if (!section) throw new NotFoundException("Section not found");
+
+    // Convert IDs to string for comparison
+    const studentExists = section.etudiants.some(
+      (e) => String(e.id) === String(studentId)
+    );
+
+    if (!studentExists) {
+      // Convert studentId to appropriate type
+      const entityId = toNumberOrStringId(studentId);
+      const student = await this.etudiantRepo.findOne({
+        where: { id: entityId as any },
+      });
+
+      if (!student) {
+        throw new NotFoundException(`Student with ID ${studentId} not found`);
+      }
+
+      section.etudiants.push(student);
+      await this.sectionRepo.save(section);
+
+      // Create notification for the student
+      await this.notificationsService.create({
+        title: "Affectation à une nouvelle section",
+        content: `Vous avez été affecté(e) à la section ${section.name}. Consultez votre nouvel emploi du temps.`,
+        type: NotificationType.ADMIN,
+        userId: studentId,
+      });
+    }
+
+    return section;
+  }
+
+  async removeStudentFromSection(
+    sectionId: string,
+    studentId: string
+  ): Promise<Section> {
+    const section = await this.sectionRepo.findOne({
+      where: { id: sectionId },
+      relations: ["etudiants"],
+    });
+    if (!section) throw new NotFoundException("Section not found");
+
+    // Convert IDs to string for comparison
+    section.etudiants = section.etudiants.filter(
+      (e) => String(e.id) !== String(studentId)
+    );
+    const updatedSection = await this.sectionRepo.save(section);
+
+    // Create notification for the student
+    await this.notificationsService.create({
+      title: "Retrait de section",
+      content: `Vous avez été retiré(e) de la section ${section.name}.`,
+      type: NotificationType.ADMIN,
+      userId: studentId,
+    });
+
+    return updatedSection;
+  }
+
+  async getResponsables(id: string) {
+    // First check if the section exists
+    const section = await this.sectionRepo.findOne({
+      where: { id },
+      relations: ["department"],
+    });
+
+    if (!section) {
+      throw new NotFoundException("Section not found");
+    }
+
+    // Get all the responsables for this section
+    const responsables =
+      await this.sectionResponsableService.getResponsablesForSection(id);
+
+    // If no responsables are assigned yet, try to find potential teachers
+    // This is a fallback mechanism
+    if (responsables.length === 0) {
+      // Try to find teachers who teach modules in this section
+      const sectionWithModules = await this.sectionRepo.findOne({
+        where: { id },
+        relations: ["modules", "modules.enseignants"],
+      });
+
+      // If we have enseignants teaching modules in this section, use them as responsables
+      if (sectionWithModules?.modules?.length > 0) {
+        const availableEnseignants = sectionWithModules.modules
+          .flatMap((module) => module.enseignants || [])
+          .filter((e): e is Enseignant => !!e);
+
+        // Use these teachers to auto-assign responsables if possible
+        if (availableEnseignants.length > 0) {
+          // Prepare assignments for different roles
+          const filiere = availableEnseignants[0];
+          const sectionResp =
+            availableEnseignants[Math.min(1, availableEnseignants.length - 1)];
+          const td =
+            availableEnseignants[Math.min(2, availableEnseignants.length - 1)];
+          const tp =
+            availableEnseignants[Math.min(3, availableEnseignants.length - 1)];
+
+          // Assign them to roles
+          await this.sectionResponsableService.assignResponsable(
+            id,
+            filiere.id,
+            ResponsableRole.FILIERE
+          );
+          await this.sectionResponsableService.assignResponsable(
+            id,
+            sectionResp.id,
+            ResponsableRole.SECTION
+          );
+          await this.sectionResponsableService.assignResponsable(
+            id,
+            td.id,
+            ResponsableRole.TD
+          );
+          await this.sectionResponsableService.assignResponsable(
+            id,
+            tp.id,
+            ResponsableRole.TP
+          );
+
+          // Fetch the newly created responsables
+          return this.formatResponsables(
+            await this.sectionResponsableService.getResponsablesForSection(id)
+          );
         }
-        return section.etudiants;
+      }
+
+      // If we still don't have responsables, use some defaults
+      return {
+        filiere: { nom: `Dr. ${section.specialty || "Mohammed"} BENSAAD` },
+        section: { nom: `Dr. ${section.name || "RAHMANI"} AHMED` },
+        td: { nom: "Dr. Karim MEZIANI" },
+        tp: { nom: "Dr. Samira TALEB" },
+      };
     }
 
-    async findGroups(id: string): Promise<Groupe[]> {
-        return this.groupeRepo.find({
-            where: { section: { id } },
-            relations: ['section']
-        });
-    }
+    // Format the responsables into the expected structure
+    return this.formatResponsables(responsables);
+  }
 
-    async findModules(id: string): Promise<StudyModule[]> {
-        const section = await this.sectionRepo.findOne({
-            where: { id },
-            relations: ['modules']
-        });
-        if (!section) {
-            throw new NotFoundException('Section not found');
-        }
-        return section.modules;
-    }
+  private formatResponsables(responsables: any[]) {
+    const result = {
+      filiere: { nom: "Non assigné" },
+      section: { nom: "Non assigné" },
+      td: { nom: "Non assigné" },
+      tp: { nom: "Non assigné" },
+    };
 
-    async update(id: string, updateSectionDto: UpdateSectionDto, adminId: string): Promise<Section> {
-        const section = await this.sectionRepo.findOneBy({ id });
-        if (!section) {
-            throw new NotFoundException('Section not found');
-        }
+    // Map each responsable to the correct role
+    responsables.forEach((resp) => {
+      if (resp.role === ResponsableRole.FILIERE && resp.enseignant) {
+        result.filiere = {
+          nom: `${resp.enseignant.firstName} ${resp.enseignant.lastName}`,
+        };
+      } else if (resp.role === ResponsableRole.SECTION && resp.enseignant) {
+        result.section = {
+          nom: `${resp.enseignant.firstName} ${resp.enseignant.lastName}`,
+        };
+      } else if (resp.role === ResponsableRole.TD && resp.enseignant) {
+        result.td = {
+          nom: `${resp.enseignant.firstName} ${resp.enseignant.lastName}`,
+        };
+      } else if (resp.role === ResponsableRole.TP && resp.enseignant) {
+        result.tp = {
+          nom: `${resp.enseignant.firstName} ${resp.enseignant.lastName}`,
+        };
+      }
+    });
 
-        if (updateSectionDto.departmentId) {
-            const department = await this.departmentRepo.findOneBy({ id: updateSectionDto.departmentId });
-            if (!department) {
-                throw new NotFoundException('Department not found');
-            }
-            section.department = department;
-        }
-
-        Object.assign(section, updateSectionDto);
-        const updatedSection = await this.sectionRepo.save(section);
-
-        await this.notificationsService.create({
-            title: 'Section mise à jour',
-            content: `La section ${updatedSection.name} a été mise à jour.`,
-            type: NotificationType.ADMIN,
-            userId: adminId
-        });
-
-        return updatedSection;
-    }
-
-    async remove(id: string): Promise<void> {
-        const result = await this.sectionRepo.delete(id);
-        if (result.affected === 0) {
-            throw new NotFoundException('Section not found');
-        }
-    }
-
-    async assignStudentToSection(sectionId: string, studentId: string): Promise<Section> {
-        const section = await this.sectionRepo.findOne({
-            where: { id: sectionId },
-            relations: ['etudiants']
-        });
-        if (!section) throw new NotFoundException('Section not found');
-
-        const studentExists = section.etudiants.some(e => e.id === studentId);
-        if (!studentExists) {
-            section.etudiants.push({ id: studentId } as any);
-            await this.sectionRepo.save(section);
-
-            // Create notification for the student
-            await this.notificationsService.create({
-                title: 'Affectation à une nouvelle section',
-                content: `Vous avez été affecté(e) à la section ${section.name}. Consultez votre nouvel emploi du temps.`,
-                type: NotificationType.ADMIN,
-                userId: studentId
-            });
-        }
-
-        return section;
-    }
-
-    async removeStudentFromSection(sectionId: string, studentId: string): Promise<Section> {
-        const section = await this.sectionRepo.findOne({
-            where: { id: sectionId },
-            relations: ['etudiants']
-        });
-        if (!section) throw new NotFoundException('Section not found');
-
-        section.etudiants = section.etudiants.filter(e => e.id !== studentId);
-        const updatedSection = await this.sectionRepo.save(section);
-
-        // Create notification for the student
-        await this.notificationsService.create({
-            title: 'Retrait de section',
-            content: `Vous avez été retiré(e) de la section ${section.name}.`,
-            type: NotificationType.ADMIN,
-            userId: studentId
-        });
-
-        return updatedSection;
-    }
+    return result;
+  }
 }

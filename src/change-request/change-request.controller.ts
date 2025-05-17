@@ -73,6 +73,8 @@ export class ChangeRequestController {
   }
 
   @Get("my-requests")
+  @UseGuards(RolesGuard)
+  @Roles(AdminRole.ETUDIANT)
   async getMyRequests(@Request() req) {
     return this.service.getStudentRequests(req.user.userId);
   }
