@@ -61,8 +61,17 @@ export class ChangeRequest {
   @Column("text")
   justification: string;
 
+  @Column({ type: 'bytea', name: 'document_data', nullable: true })
+  documentData?: Buffer;
+
+  @Column({ name: 'document_name', nullable: true })
+  documentName?: string;
+
+  @Column({ name: 'document_mime_type', nullable: true })
+  documentMimeType?: string;
+
   @Column({ nullable: true })
-  documentPath?: string;
+  documentPath: string;
 
   @Column({
     type: "enum",

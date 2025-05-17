@@ -39,7 +39,10 @@ export class ChangeRequestService {
   async createRequest(
     etudiantId: string,
     createDto: CreateChangeRequestDto,
-    documentPath: string = null
+    documentPath: string = null,
+    documentData?: Buffer,
+    documentName?: string,
+    documentMimeType?: string
   ): Promise<ChangeRequest> {
     const entityId = toNumberOrStringId(etudiantId);
     const etudiant = await this.etudiantRepo.findOneBy({ id: entityId as any });
@@ -49,11 +52,26 @@ export class ChangeRequestService {
     request.etudiant = etudiant;
     request.requestType = createDto.requestType;
     request.justification = createDto.justification;
-    request.documentPath = documentPath;
     request.studentId = etudiantId;
+    request.status = RequestStatus.PENDING;
 
     // Generate a unique request number
-    request.requestNumber = `REQ-${uuidv4().substring(0, 8).toUpperCase()}`;
+    request.requestNumber = `REQ-${new Date().getFullYear()}-${uuidv4().slice(0, 8)}`;
+
+    // Store document data if provided
+    if (documentData) {
+      console.log(`Document provided: ${documentName}, ${documentMimeType}, Size: ${documentData.length} bytes`);
+      
+      // Explicitly set the document fields
+      request.documentData = documentData;
+      request.documentName = documentName;
+      request.documentMimeType = documentMimeType;
+    } else if (documentPath) {
+      console.log(`Legacy document path provided: ${documentPath}`);
+      request.documentPath = documentPath;
+    } else {
+      console.log('No document provided with this request');
+    }
 
     if (createDto.requestType === RequestType.SECTION) {
       const currentSection = await this.sectionRepo.findOneBy({
@@ -174,6 +192,8 @@ export class ChangeRequestService {
     requestId: string,
     updateDto: UpdateRequestStatusDto
   ): Promise<ChangeRequest> {
+    console.log(`Attempting to cancel request ${requestId} for student ${studentId}`);
+    
     const request = await this.requestRepo.findOne({
       where: { id: requestId },
       relations: ["etudiant"],
@@ -183,8 +203,15 @@ export class ChangeRequestService {
       throw new NotFoundException("Request not found");
     }
 
+    // Convert IDs to strings for proper comparison
+    const requestStudentId = String(request.studentId);
+    const currentStudentId = String(studentId);
+    
+    console.log(`Comparing request studentId: ${requestStudentId} with current user: ${currentStudentId}`);
+    
     // Verify the request belongs to the student
-    if (request.studentId !== studentId) {
+    if (requestStudentId !== currentStudentId) {
+      console.error(`Authorization failed: Request belongs to ${requestStudentId}, but current user is ${currentStudentId}`);
       throw new ForbiddenException("You can only cancel your own requests");
     }
 
@@ -333,5 +360,70 @@ export class ChangeRequestService {
     }
 
     return request;
+  }
+
+  async getRequestWithDocument(requestId: string): Promise<ChangeRequest> {
+    console.log(`Retrieving document for request ID: ${requestId}`);
+    
+    try {
+      // First check if request exists
+      const requestExists = await this.requestRepo.findOne({
+        where: { id: requestId }
+      });
+      
+      if (!requestExists) {
+        throw new NotFoundException(`Request with ID ${requestId} not found`);
+      }
+      
+      // Use direct raw SQL query to ensure proper binary data retrieval
+      // This bypasses any TypeORM column mapping issues
+      const rawResult = await this.requestRepo.query(
+        `SELECT 
+          id, 
+          document_data as "documentData", 
+          document_name as "documentName", 
+          document_mime_type as "documentMimeType", 
+          "documentPath"
+         FROM change_request
+         WHERE id = $1`,
+        [requestId]
+      );
+      
+      if (!rawResult || rawResult.length === 0) {
+        throw new NotFoundException(`Request document data not found for ID ${requestId}`);
+      }
+      
+      const documentData = rawResult[0];
+      console.log("Raw document data retrieved:", {
+        id: documentData.id,
+        hasDocumentData: !!documentData.documentData,
+        documentDataSize: documentData.documentData ? documentData.documentData.length : 0,
+        documentName: documentData.documentName,
+        documentMimeType: documentData.documentMimeType
+      });
+      
+      // Create a proper entity from raw results
+      const request = new ChangeRequest();
+      request.id = documentData.id;
+      request.documentData = documentData.documentData;
+      request.documentName = documentData.documentName;
+      request.documentMimeType = documentData.documentMimeType;
+      request.documentPath = documentData.documentPath;
+      
+      const dataSize = request.documentData ? request.documentData.length : 0;
+      console.log(`Document found: ${request.documentName || 'No name'}, Size: ${dataSize} bytes`);
+      
+      if (!request.documentData || dataSize === 0) {
+        console.log(`No document found for request ${requestId}`);
+      }
+      
+      return request;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error(`Error retrieving document: ${error.message}`);
+      throw new Error(`Failed to retrieve document: ${error.message}`);
+    }
   }
 }

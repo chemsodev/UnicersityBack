@@ -48,8 +48,7 @@ export class ProfileRequest {
   contactEnCasDurgence?: string;
 
   @Column({
-    type: "enum",
-    enum: ProfileRequestStatus,
+    type: "varchar",
     default: ProfileRequestStatus.PENDING,
   })
   status: ProfileRequestStatus;
