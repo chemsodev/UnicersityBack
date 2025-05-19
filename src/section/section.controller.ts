@@ -49,15 +49,22 @@ export class SectionController {
   findStudents(@Param("id") id: string) {
     return this.sectionService.findStudents(id);
   }
-
   @Get(":id/groupes")
-  findGroups(@Param("id") id: string) {
-    return this.sectionService.findGroups(id);
-  }
-
-  @Get(":id/modules")
-  findModules(@Param("id") id: string) {
-    return this.sectionService.findModules(id);
+  async findGroups(@Param("id") id: string) {
+    console.log(`[Section Controller] Finding groups for section ID: ${id}`);
+    try {
+      const groups = await this.sectionService.findGroups(id);
+      console.log(
+        `[Section Controller] Found ${groups.length} groups for section ${id}`
+      );
+      return groups;
+    } catch (error) {
+      console.error(
+        `[Section Controller] Error finding groups for section ${id}:`,
+        error
+      );
+      throw error;
+    }
   }
 
   @Patch(":id")

@@ -5,7 +5,6 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Etudiant } from "./etudiant.entity";
 import { JwtModule } from "@nestjs/jwt";
 import { AuthModule } from "../auth/auth.module";
-import { Note } from "../notes/notes.entity";
 import { MulterModule } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import * as path from "path";
@@ -18,7 +17,7 @@ import { EnseignantModule } from "../enseignant/enseignant.module";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Etudiant, Note, Schedule]),
+    TypeOrmModule.forFeature([Etudiant, Schedule]),
     AuthModule,
     NotificationsModule,
     JwtModule,
@@ -26,7 +25,7 @@ import { EnseignantModule } from "../enseignant/enseignant.module";
     MulterModule.register({
       storage: diskStorage({
         destination: (req, file, callback) => {
-          const uploadPath = './uploads/profiles';
+          const uploadPath = "./uploads/profiles";
           // Create directory if it doesn't exist
           if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });

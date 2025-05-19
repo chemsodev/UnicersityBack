@@ -58,7 +58,11 @@ export class EtudiantController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT, AdminRole.ENSEIGNANT)
+  @Roles(
+    AdminRole.SECRETAIRE,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.ENSEIGNANT
+  )
   async findAll(
     @Request() req,
     @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
@@ -75,18 +79,25 @@ export class EtudiantController {
       if (!user.userId) {
         throw new UnauthorizedException("User ID not found for teacher.");
       }
-      const teacherId = parseInt(user.userId, 10); 
+      const teacherId = parseInt(user.userId, 10);
       if (isNaN(teacherId)) {
         throw new BadRequestException("Invalid teacher ID format.");
       }
-      return this.enseignantService.getStudentsForTeacher(teacherId, page, limit, search);
+      return this.enseignantService.getStudentsForTeacher(
+        teacherId,
+        page,
+        limit,
+        search
+      );
     } else if (
       user.adminRole === AdminRole.SECRETAIRE ||
       user.adminRole === AdminRole.CHEF_DE_DEPARTEMENT
-  ) {
-    return this.etudiantService.findAll(page, limit, search);
+    ) {
+      return this.etudiantService.findAll(page, limit, search);
     } else {
-      throw new UnauthorizedException("Insufficient permissions to view student list.");
+      throw new UnauthorizedException(
+        "Insufficient permissions to view student list."
+      );
     }
   }
 
@@ -98,22 +109,29 @@ export class EtudiantController {
       }
 
       const studentId = req.user.userId;
-      
+
       // Get student data with section info
-      const student = await this.etudiantService.findOne(studentId);
-      
+      const studentData = await this.etudiantService.findOne(studentId);
+      const student = Array.isArray(studentData) ? studentData[0] : studentData;
+
       if (!student || !student.sections || student.sections.length === 0) {
-        return { message: "Aucun emploi du temps disponible - étudiant sans section" };
+        return {
+          message: "Aucun emploi du temps disponible - étudiant sans section",
+        };
       }
-      
+
       // Get the student's first section
       const sectionId = student.sections[0].id;
-      
+
       try {
         // Get the latest schedule for the student's section
-        const scheduleService = this.moduleRef.get(ScheduleService, { strict: false });
-        const latestSchedule = await scheduleService.findLatestBySection(sectionId);
-        
+        const scheduleService = this.moduleRef.get(ScheduleService, {
+          strict: false,
+        });
+        const latestSchedule = await scheduleService.findLatestBySection(
+          sectionId
+        );
+
         return {
           id: latestSchedule.id,
           title: latestSchedule.title,
@@ -125,13 +143,13 @@ export class EtudiantController {
           updatedAt: latestSchedule.updatedAt,
           section: latestSchedule.section,
           academicYear: latestSchedule.academicYear,
-          semester: latestSchedule.semester
+          semester: latestSchedule.semester,
         };
       } catch (error) {
         console.log("No schedule found for section:", error.message);
-        return { 
-          message: "Aucun emploi du temps disponible pour votre section", 
-          sectionId 
+        return {
+          message: "Aucun emploi du temps disponible pour votre section",
+          sectionId,
         };
       }
     } catch (error) {
@@ -237,57 +255,7 @@ export class EtudiantController {
   }
 
   @Get(":id")
-  @UseGuards(RolesGuard)
-  async findOne(@Param("id") id: string, @Request() req) {
-    // More comprehensive debug logging
-    console.log("findOne student profile request:", {
-      requestedId: id,
-      user: req.user,
-      requestPath: req.path,
-      authHeader: req.headers?.authorization ? 'Present' : 'Missing'
-    });
-
-    // Handle numeric conversion - some IDs may be stored as numbers in one place and strings in another
-    let userIdString = String(req.user.userId || '');
-    let idString = String(id || '');
-    
-    // Try also as number
-    const userIdNum = parseInt(userIdString, 10);
-    const idNum = parseInt(idString, 10);
-    
-    // If both are valid numbers and they're equal numerically, consider them a match
-    const numericMatch = !isNaN(userIdNum) && !isNaN(idNum) && userIdNum === idNum;
-    // Direct string match
-    const stringMatch = userIdString === idString;
-    
-    // Check if user is a student by either adminRole or userType
-    const isStudent = req.user.adminRole === "etudiant" || req.user.userType === "etudiant";
-    
-    // Non-students (admin users) can view any profile
-    if (!isStudent) {
-      console.log("Admin access granted: non-student user accessing profile");
-      return this.etudiantService.findOne(id);
-    }
-    
-    // Students can only view their own profiles
-    if (!stringMatch && !numericMatch) {
-      console.log("Access denied: student attempting to view another profile", {
-        studentId: userIdString,
-        numericStudentId: userIdNum,
-        attemptingToView: idString,
-        numericRequestedId: idNum,
-        stringMatch,
-        numericMatch
-      });
-      throw new UnauthorizedException(
-        "Vous ne pouvez voir que votre propre profil"
-      );
-    }
-    
-    console.log("Access granted: student viewing own profile", {
-      stringMatch,
-      numericMatch
-    });
+  async findOne(@Param("id") id: string) {
     return this.etudiantService.findOne(id);
   }
 
@@ -309,17 +277,6 @@ export class EtudiantController {
     await this.etudiantService.remove(id);
   }
 
-  @Get(":id/notes")
-  @UseGuards(RolesGuard)
-  async getNotes(@Param("id") id: string, @Request() req) {
-    if (req.user.adminRole === "etudiant" && req.user.userId !== id) {
-      throw new UnauthorizedException(
-        "Vous ne pouvez voir que vos propres notes"
-      );
-    }
-    return this.etudiantService.getStudentNotes(id);
-  }
-
   @Get(":id/schedule")
   @UseGuards(RolesGuard)
   async getSchedule(@Param("id") id: string, @Request() req) {
@@ -334,5 +291,79 @@ export class EtudiantController {
   @Get(":id/notifications")
   async getNotifications(@Param("id") id: string) {
     return this.notificationsService.findAllForUser(id);
+  }
+
+  @Patch(":id/set-section-delegate/:sectionId")
+  @UseGuards(RolesGuard)
+  @Roles(AdminRole.ENSEIGNANT)
+  async setSectionDelegate(
+    @Param("id") studentId: string,
+    @Param("sectionId") sectionId: string
+  ) {
+    return this.etudiantService.setSectionDelegate(studentId, sectionId);
+  }
+
+  @Patch(":id/set-group-delegate/:groupId")
+  @UseGuards(RolesGuard)
+  @Roles(AdminRole.ENSEIGNANT)
+  async setGroupDelegate(
+    @Param("id") studentId: string,
+    @Param("groupId") groupId: string,
+    @Body() body: { groupType: "td" | "tp" }
+  ) {
+    return this.etudiantService.setGroupDelegate(
+      studentId,
+      groupId,
+      body.groupType
+    );
+  }
+
+  @Patch(":id/remove-section-delegate")
+  @UseGuards(RolesGuard)
+  @Roles(AdminRole.ENSEIGNANT)
+  async removeSectionDelegate(@Param("id") studentId: string) {
+    return this.etudiantService.removeSectionDelegate(studentId);
+  }
+
+  @Patch(":id/remove-group-delegate")
+  @UseGuards(RolesGuard)
+  @Roles(AdminRole.ENSEIGNANT)
+  async removeGroupDelegate(@Param("id") studentId: string) {
+    return this.etudiantService.removeGroupDelegate(studentId);
+  }
+  @Get("with-disability")
+  @UseGuards(RolesGuard)
+  @Roles(
+    AdminRole.ENSEIGNANT,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.SECRETAIRE
+  )
+  async getStudentsWithDisability(
+    @Request() req,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number = 10
+  ) {
+    // If request is from a teacher, pass the teacher ID
+    if (
+      req.user &&
+      req.user.adminRole === AdminRole.ENSEIGNANT &&
+      req.user.userId
+    ) {
+      const teacherId = parseInt(req.user.userId, 10);
+      return this.etudiantService.getAllWithDisability(page, limit, teacherId);
+    }
+    // For other admin roles, get all students with disabilities
+    return this.etudiantService.getAllWithDisability(page, limit);
+  }
+
+  @Get("with-disability/:id")
+  @UseGuards(RolesGuard)
+  @Roles(
+    AdminRole.ENSEIGNANT,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.SECRETAIRE
+  )
+  getStudentWithDisability(@Param("id") id: string) {
+    return this.etudiantService.getAllWithDisability(+id);
   }
 }

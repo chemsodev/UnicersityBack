@@ -43,10 +43,12 @@ export class Notification {
 
   @Column()
   userId: number;
-
   @Column({ nullable: true })
   actionLink?: string;
 
   @Column({ nullable: true })
   actionLabel?: string;
+
+  @Column({ type: "json", nullable: true })
+  metadata?: Record<string, any>;
 }

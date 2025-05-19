@@ -10,7 +10,6 @@ import { Section } from "./section.entity";
 import { Department } from "../departments/departments.entity";
 import { Etudiant } from "../etudiant/etudiant.entity";
 import { Groupe } from "../groupe/groupe.entity";
-import { StudyModule } from "../modules/modules.entity";
 import { CreateSectionDto } from "./dto/create-section.dto";
 import { UpdateSectionDto } from "./dto/update-section.dto";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -31,8 +30,6 @@ export class SectionService {
     private readonly etudiantRepo: Repository<Etudiant>,
     @InjectRepository(Groupe)
     private readonly groupeRepo: Repository<Groupe>,
-    @InjectRepository(StudyModule)
-    private readonly moduleRepo: Repository<StudyModule>,
     @InjectRepository(Enseignant)
     private readonly enseignantRepo: Repository<Enseignant>,
     private readonly notificationsService: NotificationsService,
@@ -113,23 +110,42 @@ export class SectionService {
     }
     return section.etudiants;
   }
-
   async findGroups(id: string): Promise<Groupe[]> {
-    return this.groupeRepo.find({
-      where: { section: { id } },
-      relations: ["section"],
-    });
-  }
+    console.log(`[Section Service] Finding groups for section ID: ${id}`);
+    try {
+      const groups = await this.groupeRepo.find({
+        where: { section: { id } },
+        relations: ["section"],
+      });
 
-  async findModules(id: string): Promise<StudyModule[]> {
-    const section = await this.sectionRepo.findOne({
-      where: { id },
-      relations: ["modules"],
-    });
-    if (!section) {
-      throw new NotFoundException("Section not found");
+      console.log(
+        `[Section Service] Found ${groups.length} groups for section ${id}`
+      );
+
+      // Log group details for debugging
+      if (groups.length > 0) {
+        const groupSummary = groups.map((g) => ({
+          id: g.id,
+          name: g.name,
+          type: g.type,
+          currentOccupancy: g.currentOccupancy,
+          capacity: g.capacity,
+        }));
+
+        console.log(
+          `[Section Service] Group details:`,
+          JSON.stringify(groupSummary, null, 2)
+        );
+      }
+
+      return groups;
+    } catch (error) {
+      console.error(
+        `[Section Service] Error finding groups for section ${id}:`,
+        error
+      );
+      throw error;
     }
-    return section.modules;
   }
 
   async update(
@@ -254,70 +270,6 @@ export class SectionService {
     // Get all the responsables for this section
     const responsables =
       await this.sectionResponsableService.getResponsablesForSection(id);
-
-    // If no responsables are assigned yet, try to find potential teachers
-    // This is a fallback mechanism
-    if (responsables.length === 0) {
-      // Try to find teachers who teach modules in this section
-      const sectionWithModules = await this.sectionRepo.findOne({
-        where: { id },
-        relations: ["modules", "modules.enseignants"],
-      });
-
-      // If we have enseignants teaching modules in this section, use them as responsables
-      if (sectionWithModules?.modules?.length > 0) {
-        const availableEnseignants = sectionWithModules.modules
-          .flatMap((module) => module.enseignants || [])
-          .filter((e): e is Enseignant => !!e);
-
-        // Use these teachers to auto-assign responsables if possible
-        if (availableEnseignants.length > 0) {
-          // Prepare assignments for different roles
-          const filiere = availableEnseignants[0];
-          const sectionResp =
-            availableEnseignants[Math.min(1, availableEnseignants.length - 1)];
-          const td =
-            availableEnseignants[Math.min(2, availableEnseignants.length - 1)];
-          const tp =
-            availableEnseignants[Math.min(3, availableEnseignants.length - 1)];
-
-          // Assign them to roles
-          await this.sectionResponsableService.assignResponsable(
-            id,
-            filiere.id,
-            ResponsableRole.FILIERE
-          );
-          await this.sectionResponsableService.assignResponsable(
-            id,
-            sectionResp.id,
-            ResponsableRole.SECTION
-          );
-          await this.sectionResponsableService.assignResponsable(
-            id,
-            td.id,
-            ResponsableRole.TD
-          );
-          await this.sectionResponsableService.assignResponsable(
-            id,
-            tp.id,
-            ResponsableRole.TP
-          );
-
-          // Fetch the newly created responsables
-          return this.formatResponsables(
-            await this.sectionResponsableService.getResponsablesForSection(id)
-          );
-        }
-      }
-
-      // If we still don't have responsables, use some defaults
-      return {
-        filiere: { nom: `Dr. ${section.specialty || "Mohammed"} BENSAAD` },
-        section: { nom: `Dr. ${section.name || "RAHMANI"} AHMED` },
-        td: { nom: "Dr. Karim MEZIANI" },
-        tp: { nom: "Dr. Samira TALEB" },
-      };
-    }
 
     // Format the responsables into the expected structure
     return this.formatResponsables(responsables);

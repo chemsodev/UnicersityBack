@@ -7,7 +7,6 @@ import { Section } from "./section.entity";
 import { Department } from "../departments/departments.entity";
 import { Etudiant } from "../etudiant/etudiant.entity";
 import { Groupe } from "../groupe/groupe.entity";
-import { StudyModule } from "../modules/modules.entity";
 import { SectionResponsable } from "./section-responsable.entity";
 import { SectionResponsableService } from "./section-responsable.service";
 import { SectionResponsableController } from "./section-responsable.controller";
@@ -23,7 +22,6 @@ import { NotificationsModule } from "../notifications/notifications.module";
       Department,
       Etudiant,
       Groupe,
-      StudyModule,
       SectionResponsable,
       Enseignant,
     ]),

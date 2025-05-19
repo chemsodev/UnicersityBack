@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Notification } from "./notification.entity";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
+import { CreateBulkNotificationDto } from "./dto/create-bulk-notification.dto";
 import { toNumberOrStringId } from "../utils/id-conversion.util";
 
 @Injectable()
@@ -47,6 +48,23 @@ export class NotificationsService {
   async findOne(id: string): Promise<Notification> {
     return await this.notificationRepository.findOneBy({ id });
   }
+  /**
+   * Find notifications created by a specific teacher
+   */
+  async findByTeacherId(teacherId: string): Promise<Notification[]> {
+    const entityId = toNumberOrStringId(teacherId);
+
+    // Using raw query to search in JSON metadata for senderId
+    const queryBuilder =
+      this.notificationRepository.createQueryBuilder("notification");
+    queryBuilder
+      .where(`notification.metadata->>'senderId' = :teacherId`, {
+        teacherId: entityId.toString(),
+      })
+      .orderBy("notification.createdAt", "DESC");
+
+    return queryBuilder.getMany();
+  }
 
   async markAsRead(id: string): Promise<Notification> {
     await this.notificationRepository.update(id, { isRead: true });
@@ -87,7 +105,6 @@ export class NotificationsService {
       isRead: true,
     });
   }
-
   async cleanupOldNotifications(
     userId: string,
     olderThan: Date
@@ -99,5 +116,38 @@ export class NotificationsService {
       isRead: true,
       createdAt: { $lt: olderThan } as any,
     });
+  }
+
+  /**
+   * Create notifications for multiple users at once
+   */
+  async createBulkNotifications(
+    bulkDto: CreateBulkNotificationDto
+  ): Promise<Notification[]> {
+    // Process all userIds to ensure they're in the correct format
+    const processedUserIds = bulkDto.userIds.map((userId) =>
+      typeof userId === "string" ? toNumberOrStringId(userId) : userId
+    );
+
+    // Create notification entities
+    const notifications = processedUserIds.map((userId) =>
+      this.notificationRepository.create({
+        title: bulkDto.title,
+        content: bulkDto.content,
+        type: bulkDto.type,
+        userId: userId as any,
+        actionLink: bulkDto.actionLink,
+        actionLabel: bulkDto.actionLabel,
+        metadata: {
+          senderName: bulkDto.senderName,
+          senderId: bulkDto.senderId || null, // Store the sender ID in metadata
+          importance: bulkDto.importance || "normal",
+          groupId: Date.now().toString(), // Group notifications by creation batch
+        },
+      })
+    );
+
+    // Save all notifications in one batch
+    return await this.notificationRepository.save(notifications);
   }
 }

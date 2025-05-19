@@ -2,7 +2,6 @@ import { ChangeRequest } from "../change-request/change-request.entity";
 import { Department } from "../departments/departments.entity";
 import { Etudiant } from "../etudiant/etudiant.entity";
 import { Groupe } from "../groupe/groupe.entity";
-import { StudyModule } from "../modules/modules.entity";
 import { Schedule } from "../schedules/entities/schedule.entity";
 import { SectionResponsable } from "./section-responsable.entity";
 import {
@@ -57,20 +56,6 @@ export class Section {
     },
   })
   etudiants: Etudiant[];
-
-  @ManyToMany(() => StudyModule, (module) => module.sections)
-  @JoinTable({
-    name: "module_sections",
-    joinColumn: {
-      name: "section_id",
-      referencedColumnName: "id",
-    },
-    inverseJoinColumn: {
-      name: "module_id",
-      referencedColumnName: "id",
-    },
-  })
-  modules: StudyModule[];
 
   @OneToMany(() => Schedule, (schedule) => schedule.section)
   schedules: Schedule[];
