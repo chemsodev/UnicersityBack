@@ -9,6 +9,8 @@ import { GroupeModule } from "./groupe/groupe.module";
 import { EtudiantModule } from "./etudiant/etudiant.module";
 import { ProfileRequestsModule } from "./profile-requests/profile-requests.module";
 import { ChangeRequestModule } from "./change-request/change-request.module";
+import { AdministrateurModule } from "./administrateur/administrateur.module";
+import { AdminHierarchyModule } from "./modules/admin-hierarchy/admin-hierarchy.module";
 
 // You might have more modules to import based on your needs
 
@@ -32,15 +34,15 @@ import { ChangeRequestModule } from "./change-request/change-request.module";
       ssl: {
         rejectUnauthorized: false, // Depending on your Aiven setup
       },
-    }),
-
-    // Feature modules
+    }), // Feature modules
     AuthModule,
     SectionModule,
     GroupeModule,
     EtudiantModule,
     ProfileRequestsModule,
     ChangeRequestModule,
+    AdministrateurModule,
+    AdminHierarchyModule,
 
     // Add other modules as needed
   ],

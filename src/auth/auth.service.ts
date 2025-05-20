@@ -109,8 +109,8 @@ export class AuthService {
       userId: teacher.id,
       email: teacher.email,
       teacherId: teacher.id_enseignant,
-      role: AdminRole.ENSEIGNANT,   // Set explicit role
-      userType: "enseignant"
+      role: AdminRole.ENSEIGNANT, // Set explicit role
+      userType: "enseignant",
     };
 
     return {
@@ -120,7 +120,7 @@ export class AuthService {
         email: teacher.email,
         teacherId: teacher.id_enseignant,
         role: AdminRole.ENSEIGNANT,
-        userType: "enseignant"
+        userType: "enseignant",
       },
     };
   }
@@ -132,11 +132,31 @@ export class AuthService {
       throw new UnauthorizedException("Admin role not assigned");
     }
 
-    // Verify the admin has the requested role if specified
+    // Handle role-based hierarchy - determine if user's role can access the requested role
     if (requestedRole && admin.adminRole !== requestedRole) {
-      throw new UnauthorizedException(
-        `You are not authorized as ${requestedRole}`
-      );
+      // Hierarchy check - DOYEN can access any role
+      if (admin.adminRole === AdminRole.DOYEN) {
+        console.log(`Doyen accessing ${requestedRole} role`);
+      }
+      // VICE_DOYEN can access all except DOYEN
+      else if (
+        admin.adminRole === AdminRole.VICE_DOYEN &&
+        requestedRole !== AdminRole.DOYEN
+      ) {
+        console.log(`Vice-Doyen accessing ${requestedRole} role`);
+      }
+      // CHEF_DE_DEPARTEMENT can access CHEF_DE_SPECIALITE and SECRETAIRE
+      else if (
+        admin.adminRole === AdminRole.CHEF_DE_DEPARTEMENT &&
+        (requestedRole === AdminRole.CHEF_DE_SPECIALITE ||
+          requestedRole === AdminRole.SECRETAIRE)
+      ) {
+        console.log(`Chef de département accessing ${requestedRole} role`);
+      } else {
+        throw new UnauthorizedException(
+          `Vous n'avez pas les permissions pour accéder au rôle ${requestedRole}`
+        );
+      }
     }
 
     const tokenPayload = {
@@ -144,6 +164,7 @@ export class AuthService {
       email: admin.email,
       role: admin.adminRole,
       userType: "administrateur",
+      requestedRole: requestedRole || admin.adminRole, // Add the requested role to the token
     };
 
     return {
@@ -151,6 +172,7 @@ export class AuthService {
       adminRole: admin.adminRole,
       email: admin.email,
       userId: admin.id,
+      requestedRole: requestedRole || admin.adminRole,
     };
   }
   private generateToken(payload: {
