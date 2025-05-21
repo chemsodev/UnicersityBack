@@ -20,7 +20,6 @@ import { EnseignantService } from "./enseignant.service";
 import { CreateEnseignantDto } from "./dto/create-enseignant.dto";
 import { Enseignant } from "./enseignant.entity";
 import { UpdateEnseignantDto } from "./dto/update-enseignant.dto";
-import { AssignModulesDto } from "./dto/assign-modules.dto";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../roles/roles.guard";
 import { Roles } from "../roles/roles.decorator";

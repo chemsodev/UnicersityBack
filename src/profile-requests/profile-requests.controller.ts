@@ -20,6 +20,7 @@ import { RolesGuard } from "../roles/roles.guard";
 import { Roles } from "../roles/roles.decorator";
 import { AdminRole } from "../user.entity";
 import { ProfileRequestStatus } from "./profile-request.entity";
+import { RolesUtil } from "../utils/roles.util";
 
 @Controller("profile-requests")
 @UseGuards(AuthGuard, RolesGuard)
@@ -42,7 +43,7 @@ export class ProfileRequestsController {
     this.logger.log(`User in request: ${JSON.stringify(req.user)}`);
 
     // Ensure students can only create requests for themselves
-    if (req.user.userId !== createProfileRequestDto.studentId) {
+    if (req.user.userId != createProfileRequestDto.studentId) {
       throw new ForbiddenException(
         "Vous ne pouvez créer des demandes que pour votre propre profil"
       );
@@ -52,7 +53,7 @@ export class ProfileRequestsController {
   }
 
   @Get()
-  @Roles(AdminRole.SECRETAIRE)
+  @Roles(...RolesUtil.getAdminRoles())
   findAll() {
     return this.profileRequestsService.findAll();
   }
@@ -65,31 +66,33 @@ export class ProfileRequestsController {
   }
 
   @Get("pending")
-  @Roles(AdminRole.SECRETAIRE)
+  @Roles(...RolesUtil.getAdminRoles())
   findPending() {
     return this.profileRequestsService.findByStatus("pending");
   }
 
   @Get("student/:id")
+  @Roles(AdminRole.ETUDIANT, ...RolesUtil.getAdminRoles())
   async findByStudent(@Param("id") id: string, @Request() req) {
-    /* Students can only view their own requests
-    if (req.user.userType === "etudiant" && req.user.userId !== id) {
+    // Students can only view their own requests
+    if (req.user.adminRole === AdminRole.ETUDIANT && req.user.userId != id) {
       throw new UnauthorizedException(
         "Vous ne pouvez voir que vos propres demandes"
       );
-    }*/
+    }
 
     return this.profileRequestsService.findByStudent(id);
   }
 
   @Get(":id")
+  @Roles(AdminRole.ETUDIANT, ...RolesUtil.getAdminRoles())
   async findOne(@Param("id") id: string, @Request() req) {
     const request = await this.profileRequestsService.findOne(id);
 
     // Students can only view their own requests
     if (
-      req.user.userType === "etudiant" &&
-      req.user.userId !== request.studentId
+      req.user.adminRole === AdminRole.ETUDIANT &&
+      req.user.userId != request.studentId
     ) {
       throw new UnauthorizedException(
         "Vous ne pouvez voir que vos propres demandes"
@@ -100,7 +103,7 @@ export class ProfileRequestsController {
   }
 
   @Patch(":id")
-  @Roles(AdminRole.SECRETAIRE)
+  @Roles(...RolesUtil.getAdminRoles())
   update(
     @Param("id") id: string,
     @Body() updateProfileRequestDto: UpdateProfileRequestDto,
@@ -123,7 +126,7 @@ export class ProfileRequestsController {
     const request = await this.profileRequestsService.findOne(id);
 
     // Students can only cancel their own requests
-    if (req.user.userId !== request.studentId) {
+    if (req.user.userId != request.studentId) {
       throw new ForbiddenException(
         "Vous ne pouvez annuler que vos propres demandes"
       );
@@ -143,7 +146,7 @@ export class ProfileRequestsController {
   }
 
   @Delete(":id")
-  @Roles(AdminRole.SECRETAIRE)
+  @Roles(...RolesUtil.getAdminRoles())
   remove(@Param("id") id: string) {
     return this.profileRequestsService.remove(id);
   }

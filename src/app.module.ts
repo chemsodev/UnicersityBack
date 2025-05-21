@@ -11,6 +11,7 @@ import { ProfileRequestsModule } from "./profile-requests/profile-requests.modul
 import { ChangeRequestModule } from "./change-request/change-request.module";
 import { AdministrateurModule } from "./administrateur/administrateur.module";
 import { AdminHierarchyModule } from "./modules/admin-hierarchy/admin-hierarchy.module";
+import { EnseignantModule } from "./enseignant/enseignant.module";
 
 // You might have more modules to import based on your needs
 
@@ -43,6 +44,7 @@ import { AdminHierarchyModule } from "./modules/admin-hierarchy/admin-hierarchy.
     ChangeRequestModule,
     AdministrateurModule,
     AdminHierarchyModule,
+    EnseignantModule,
 
     // Add other modules as needed
   ],

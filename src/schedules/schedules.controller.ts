@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -23,6 +22,7 @@ import { Roles } from "../roles/roles.decorator";
 import { AdminRole } from "../user.entity";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Response } from "express";
+import { ScheduleType } from "./schedules.types";
 
 @Controller("schedules")
 @UseGuards(JwtAuthGuard)
@@ -63,6 +63,22 @@ export class SchedulesController {
   @Get('section/:sectionId/latest')
   async findLatestBySection(@Param('sectionId') sectionId: string): Promise<Schedule> {
     return this.scheduleService.findLatestBySection(sectionId);
+  }
+
+  @Get('specialty/:specialty/level/:level/exams')
+  async findExamSchedulesBySpecialtyAndLevel(
+    @Param('specialty') specialty: string,
+    @Param('level') level: string
+  ): Promise<Schedule[]> {
+    return this.scheduleService.findExamSchedulesBySpecialtyAndLevel(specialty, level);
+  }
+  
+  @Get('section/:sectionId/type/:type')
+  async findSchedulesByType(
+    @Param('sectionId') sectionId: string,
+    @Param('type') type: ScheduleType
+  ): Promise<Schedule[]> {
+    return this.scheduleService.findSchedulesByType(sectionId, type);
   }
 
   @Get(':id')
