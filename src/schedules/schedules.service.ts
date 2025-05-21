@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Section } from '../section/section.entity';
-import { Schedule, ScheduleType } from './entities/schedule.entity';
+import { Schedule } from './entities/schedule.entity';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/notification.entity';
+import { ScheduleType } from './schedules.types';
 
 @Injectable()
 export class ScheduleService {
@@ -247,6 +248,37 @@ export class ScheduleService {
                 `Un emploi du temps de votre section a été supprimé.`
             );
         }
+    }
+
+    async findExamSchedulesBySpecialtyAndLevel(specialty: string, level: string): Promise<Schedule[]> {
+        // Find all sections with the given specialty and level
+        const sections = await this.sectionRepository.find({
+            where: { specialty, level }
+        });
+        
+        if (!sections || sections.length === 0) {
+            return [];
+        }
+        
+        const sectionIds = sections.map(section => section.id);
+        
+        // Find all exam schedules for these sections
+        return this.scheduleRepository.find({
+            where: { 
+                sectionId: In(sectionIds),
+                scheduleType: ScheduleType.EXAM
+            },
+            relations: ['section', 'uploadedBy'],
+            order: { createdAt: 'DESC' }
+        });
+    }
+    
+    async findSchedulesByType(sectionId: string, type: ScheduleType): Promise<Schedule[]> {
+        return this.scheduleRepository.find({
+            where: { sectionId, scheduleType: type },
+            relations: ['uploadedBy'],
+            order: { createdAt: 'DESC' }
+        });
     }
 
     // Helper method to notify students in a section

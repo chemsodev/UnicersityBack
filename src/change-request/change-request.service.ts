@@ -433,4 +433,11 @@ export class ChangeRequestService {
       throw new Error(`Failed to retrieve document: ${error.message}`);
     }
   }
+
+  async findAll(): Promise<ChangeRequest[]> {
+    return this.requestRepo.find({
+      relations: ['etudiant', 'currentSection', 'requestedSection', 'currentGroupe', 'requestedGroupe'],
+      order: { createdAt: 'DESC' }
+    });
+  }
 }

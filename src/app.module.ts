@@ -9,6 +9,7 @@ import { GroupeModule } from "./groupe/groupe.module";
 import { EtudiantModule } from "./etudiant/etudiant.module";
 import { ProfileRequestsModule } from "./profile-requests/profile-requests.module";
 import { ChangeRequestModule } from "./change-request/change-request.module";
+import { EnseignantModule } from "./enseignant/enseignant.module";
 
 // You might have more modules to import based on your needs
 
@@ -41,6 +42,7 @@ import { ChangeRequestModule } from "./change-request/change-request.module";
     EtudiantModule,
     ProfileRequestsModule,
     ChangeRequestModule,
+    EnseignantModule,
 
     // Add other modules as needed
   ],

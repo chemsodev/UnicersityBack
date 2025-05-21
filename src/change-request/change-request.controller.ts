@@ -20,6 +20,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AdminRole } from "../user.entity";
 import { Roles } from "src/roles/roles.decorator";
 import { RolesGuard } from "src/roles/roles.guard";
+import { RolesUtil } from "../utils/roles.util";
 import {
   CreateChangeRequestDto,
   RequestStatus,
@@ -331,14 +332,14 @@ export class ChangeRequestController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
+  @Roles(...RolesUtil.getAdminRoles())
   async getAllRequests() {
-    return this.service.getAllRequests();
+    return this.service.findAll();
   }
 
   @Patch(":id/status")
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
+  @Roles(...RolesUtil.getAdminRoles())
   async updateRequestStatus(
     @Param("id") id: string,
     @Body() updateDto: UpdateRequestStatusDto

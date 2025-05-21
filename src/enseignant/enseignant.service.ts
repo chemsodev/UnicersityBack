@@ -4,11 +4,10 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, Like, In } from "typeorm";
+import { Repository, In } from "typeorm";
 import { Enseignant } from "./enseignant.entity";
 import { Schedule } from "../schedules/entities/schedule.entity";
 import { CreateEnseignantDto } from "./dto/create-enseignant.dto";
-import { AssignModulesDto } from "./dto/assign-modules.dto";
 import { UpdateEnseignantDto } from "./dto/update-enseignant.dto";
 import { Section } from "../section/section.entity";
 import { Etudiant } from "../etudiant/etudiant.entity";
@@ -18,7 +17,7 @@ import {
   RequestStatus,
   RequestType,
 } from "../change-request/change-request.entity";
-import { Groupe, GroupeType } from "../groupe/groupe.entity";
+import { Groupe } from "../groupe/groupe.entity";
 
 @Injectable()
 export class EnseignantService {
@@ -47,14 +46,14 @@ export class EnseignantService {
 
   async findAll(): Promise<Enseignant[]> {
     return this.enseignantRepository.find({
-      relations: ["modules", "schedules"],
+      relations: ["schedules"],
     });
   }
 
   async findOne(id: number): Promise<Enseignant> {
     const enseignant = await this.enseignantRepository.findOne({
       where: { id },
-      relations: ["modules", "schedules"],
+      relations: ["schedules"],
     });
 
     if (!enseignant) {
@@ -67,7 +66,7 @@ export class EnseignantService {
   async findByIdEnseignant(idEnseignant: string): Promise<Enseignant> {
     const enseignant = await this.enseignantRepository.findOne({
       where: { id_enseignant: idEnseignant },
-      relations: ["modules", "schedules"],
+      relations: ["schedules"],
     });
 
     if (!enseignant) {
@@ -100,7 +99,8 @@ export class EnseignantService {
   }
 
   async getSchedules(id: number): Promise<Schedule[]> {
-    const enseignant = await this.findOne(id);
+    // Validate that the enseignant exists
+    await this.findOne(id);
 
     // Instead of querying by uploadedById which doesn't exist,
     // we'll get all schedules and then filter by section

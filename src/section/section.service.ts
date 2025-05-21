@@ -93,7 +93,6 @@ export class SectionService {
         "department",
         "groupes",
         "etudiants",
-        "modules",
         "responsables",
         "responsables.enseignant",
       ],
