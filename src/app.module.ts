@@ -12,6 +12,7 @@ import { ChangeRequestModule } from "./change-request/change-request.module";
 import { AdministrateurModule } from "./administrateur/administrateur.module";
 import { AdminHierarchyModule } from "./modules/admin-hierarchy/admin-hierarchy.module";
 import { EnseignantModule } from "./enseignant/enseignant.module";
+import { DepartmentModule } from "./departments/departments.module"; // Assuming you have a departments module
 
 // You might have more modules to import based on your needs
 
@@ -45,6 +46,7 @@ import { EnseignantModule } from "./enseignant/enseignant.module";
     AdministrateurModule,
     AdminHierarchyModule,
     EnseignantModule,
+    DepartmentModule,
 
     // Add other modules as needed
   ],

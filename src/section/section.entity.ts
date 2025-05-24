@@ -22,6 +22,9 @@ export class Section {
   @Column()
   name: string;
 
+  @Column({ default: 100 })
+  capacity: number;
+
   @OneToMany(() => Groupe, (groupe) => groupe.section)
   groupes: Groupe[];
 

@@ -83,22 +83,15 @@ export class AuthService {
 
   // For Teacher Login
   async loginEnseignant(dto: LoginDto) {
-    if (!dto.email && !dto.id_enseignant) {
-      throw new UnauthorizedException("Email or teacher ID required");
+    if (!dto.email) {
+      throw new UnauthorizedException("Email required");
     }
     let teacher: Enseignant;
 
-    if (dto.id_enseignant) {
-      teacher = await this.enseignantRepo.findOne({
-        where: { id_enseignant: dto.id_enseignant },
-        select: ["id", "email", "id_enseignant", "password"],
-      });
-    } else {
-      teacher = await this.enseignantRepo.findOne({
-        where: { email: dto.email },
-        select: ["id", "email", "id_enseignant", "password"],
-      });
-    }
+    teacher = await this.enseignantRepo.findOne({
+      where: { email: dto.email },
+      select: ["id", "email", "password"],
+    });
 
     if (!teacher || !(await bcrypt.compare(dto.password, teacher.password))) {
       throw new UnauthorizedException("Invalid credentials");
@@ -108,7 +101,6 @@ export class AuthService {
     const tokenPayload = {
       userId: teacher.id,
       email: teacher.email,
-      teacherId: teacher.id_enseignant,
       role: AdminRole.ENSEIGNANT, // Set explicit role
       userType: "enseignant",
     };
@@ -118,7 +110,6 @@ export class AuthService {
       user: {
         id: teacher.id,
         email: teacher.email,
-        teacherId: teacher.id_enseignant,
         role: AdminRole.ENSEIGNANT,
         userType: "enseignant",
       },
@@ -162,7 +153,8 @@ export class AuthService {
     const tokenPayload = {
       userId: admin.id,
       email: admin.email,
-      role: admin.adminRole,
+      adminRole: admin.adminRole, // always include
+      role: admin.adminRole, // for compatibility
       userType: "administrateur",
       requestedRole: requestedRole || admin.adminRole, // Add the requested role to the token
     };
@@ -184,5 +176,35 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
     };
+  }
+
+  /**
+   * Checks if a given role has permission to access or modify a target role
+   * based on the administrative hierarchy
+   */
+  canAccessRole(
+    userRole: string | AdminRole,
+    targetRole: string | AdminRole
+  ): boolean {
+    const roleHierarchy = {
+      [AdminRole.DOYEN]: 5, // Highest authority
+      [AdminRole.VICE_DOYEN]: 4,
+      [AdminRole.CHEF_DE_DEPARTEMENT]: 3,
+      [AdminRole.CHEF_DE_SPECIALITE]: 2,
+      [AdminRole.SECRETAIRE]: 1,
+      [AdminRole.ENSEIGNANT]: 0,
+      [AdminRole.ETUDIANT]: 0,
+    };
+
+    // Doyen has access to all roles
+    if (userRole === AdminRole.DOYEN) {
+      return true;
+    }
+
+    // Check if the user's role has higher or equal authority than the target role
+    const userRoleValue = roleHierarchy[userRole] || 0;
+    const targetRoleValue = roleHierarchy[targetRole] || 0;
+
+    return userRoleValue >= targetRoleValue;
   }
 }

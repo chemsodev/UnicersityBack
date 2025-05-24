@@ -5,14 +5,8 @@ import { ChildEntity, OneToMany, Column } from "typeorm";
 
 @ChildEntity("enseignant")
 export class Enseignant extends User {
-  @Column({
-    name: "id_enseignant",
-    type: "varchar",
-    length: 50,
-    unique: true,
-    nullable: false,
-  })
-  id_enseignant: string;
+  @Column({ unique: true, length: 20, nullable: true })
+  matricule: string;
 
   @OneToMany(() => Schedule, (schedule) => schedule.uploadedBy)
   schedules: Schedule[];

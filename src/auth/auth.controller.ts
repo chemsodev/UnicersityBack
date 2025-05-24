@@ -50,10 +50,16 @@ export class AuthController {
 
     // If a specific role is requested, check if user has access to it
     if (requestedRole && userRole !== requestedRole) {
-      // Check role hierarchy permissions here if needed
-      console.log(
-        `User with role ${userRole} is accessing ${requestedRole} page`
-      );
+      // Use AdminRole helper to validate role hierarchy
+      if (this.authService.canAccessRole(userRole, requestedRole)) {
+        console.log(
+          `User with role ${userRole} is accessing ${requestedRole} page (permitted by hierarchy)`
+        );
+      } else {
+        throw new UnauthorizedException(
+          `You don't have permission to access the ${requestedRole} role.`
+        );
+      }
     }
 
     return {
@@ -62,6 +68,8 @@ export class AuthController {
       adminRole: userRole,
       userType: userType,
       requestedRole: requestedRole || userRole,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
     };
   }
   @Options("*")

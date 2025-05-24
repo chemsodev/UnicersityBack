@@ -9,6 +9,7 @@ import { SectionResponsable } from "../section/section-responsable.entity";
 import { Etudiant } from "../etudiant/etudiant.entity";
 import { ChangeRequest } from "../change-request/change-request.entity";
 import { Groupe } from "../groupe/groupe.entity";
+import { User } from "../user.entity";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule } from "@nestjs/config";
 
@@ -17,6 +18,7 @@ import { ConfigModule } from "@nestjs/config";
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([
       Enseignant,
+      User,
       Schedule,
       Section,
       SectionResponsable,

@@ -56,12 +56,17 @@ export class ChangeRequestService {
     request.status = RequestStatus.PENDING;
 
     // Generate a unique request number
-    request.requestNumber = `REQ-${new Date().getFullYear()}-${uuidv4().slice(0, 8)}`;
+    request.requestNumber = `REQ-${new Date().getFullYear()}-${uuidv4().slice(
+      0,
+      8
+    )}`;
 
     // Store document data if provided
     if (documentData) {
-      console.log(`Document provided: ${documentName}, ${documentMimeType}, Size: ${documentData.length} bytes`);
-      
+      console.log(
+        `Document provided: ${documentName}, ${documentMimeType}, Size: ${documentData.length} bytes`
+      );
+
       // Explicitly set the document fields
       request.documentData = documentData;
       request.documentName = documentName;
@@ -70,7 +75,7 @@ export class ChangeRequestService {
       console.log(`Legacy document path provided: ${documentPath}`);
       request.documentPath = documentPath;
     } else {
-      console.log('No document provided with this request');
+      console.log("No document provided with this request");
     }
 
     if (createDto.requestType === RequestType.SECTION) {
@@ -192,8 +197,10 @@ export class ChangeRequestService {
     requestId: string,
     updateDto: UpdateRequestStatusDto
   ): Promise<ChangeRequest> {
-    console.log(`Attempting to cancel request ${requestId} for student ${studentId}`);
-    
+    console.log(
+      `Attempting to cancel request ${requestId} for student ${studentId}`
+    );
+
     const request = await this.requestRepo.findOne({
       where: { id: requestId },
       relations: ["etudiant"],
@@ -206,12 +213,16 @@ export class ChangeRequestService {
     // Convert IDs to strings for proper comparison
     const requestStudentId = String(request.studentId);
     const currentStudentId = String(studentId);
-    
-    console.log(`Comparing request studentId: ${requestStudentId} with current user: ${currentStudentId}`);
-    
+
+    console.log(
+      `Comparing request studentId: ${requestStudentId} with current user: ${currentStudentId}`
+    );
+
     // Verify the request belongs to the student
     if (requestStudentId !== currentStudentId) {
-      console.error(`Authorization failed: Request belongs to ${requestStudentId}, but current user is ${currentStudentId}`);
+      console.error(
+        `Authorization failed: Request belongs to ${requestStudentId}, but current user is ${currentStudentId}`
+      );
       throw new ForbiddenException("You can only cancel your own requests");
     }
 
@@ -307,7 +318,7 @@ export class ChangeRequestService {
   // Get group by ID for validation
   async getGroupById(groupId: string): Promise<Groupe> {
     return this.groupeRepo.findOne({
-      where: { id: groupId }
+      where: { id: groupId },
     });
   }
 
@@ -371,44 +382,48 @@ export class ChangeRequestService {
 
   async getRequestWithDocument(requestId: string): Promise<ChangeRequest> {
     console.log(`Retrieving document for request ID: ${requestId}`);
-    
+
     try {
       // First check if request exists
       const requestExists = await this.requestRepo.findOne({
-        where: { id: requestId }
+        where: { id: requestId },
       });
-      
+
       if (!requestExists) {
         throw new NotFoundException(`Request with ID ${requestId} not found`);
       }
-      
+
       // Use direct raw SQL query to ensure proper binary data retrieval
       // This bypasses any TypeORM column mapping issues
       const rawResult = await this.requestRepo.query(
-        `SELECT 
-          id, 
-          document_data as "documentData", 
-          document_name as "documentName", 
-          document_mime_type as "documentMimeType", 
+        `SELECT
+          id,
+          document_data as "documentData",
+          document_name as "documentName",
+          document_mime_type as "documentMimeType",
           "documentPath"
          FROM change_request
          WHERE id = $1`,
         [requestId]
       );
-      
+
       if (!rawResult || rawResult.length === 0) {
-        throw new NotFoundException(`Request document data not found for ID ${requestId}`);
+        throw new NotFoundException(
+          `Request document data not found for ID ${requestId}`
+        );
       }
-      
+
       const documentData = rawResult[0];
       console.log("Raw document data retrieved:", {
         id: documentData.id,
         hasDocumentData: !!documentData.documentData,
-        documentDataSize: documentData.documentData ? documentData.documentData.length : 0,
+        documentDataSize: documentData.documentData
+          ? documentData.documentData.length
+          : 0,
         documentName: documentData.documentName,
-        documentMimeType: documentData.documentMimeType
+        documentMimeType: documentData.documentMimeType,
       });
-      
+
       // Create a proper entity from raw results
       const request = new ChangeRequest();
       request.id = documentData.id;
@@ -416,14 +431,18 @@ export class ChangeRequestService {
       request.documentName = documentData.documentName;
       request.documentMimeType = documentData.documentMimeType;
       request.documentPath = documentData.documentPath;
-      
+
       const dataSize = request.documentData ? request.documentData.length : 0;
-      console.log(`Document found: ${request.documentName || 'No name'}, Size: ${dataSize} bytes`);
-      
+      console.log(
+        `Document found: ${
+          request.documentName || "No name"
+        }, Size: ${dataSize} bytes`
+      );
+
       if (!request.documentData || dataSize === 0) {
         console.log(`No document found for request ${requestId}`);
       }
-      
+
       return request;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -436,8 +455,77 @@ export class ChangeRequestService {
 
   async findAll(): Promise<ChangeRequest[]> {
     return this.requestRepo.find({
-      relations: ['etudiant', 'currentSection', 'requestedSection', 'currentGroupe', 'requestedGroupe'],
-      order: { createdAt: 'DESC' }
+      relations: [
+        "etudiant",
+        "currentSection",
+        "requestedSection",
+        "currentGroupe",
+        "requestedGroupe",
+      ],
+      order: { createdAt: "DESC" },
     });
+  }
+
+  /**
+   * Find all section change requests, with optional filtering by status and department
+   */
+  async findSectionChangeRequests(
+    status?: RequestStatus,
+    departmentId?: string
+  ): Promise<ChangeRequest[]> {
+    const queryBuilder = this.requestRepo
+      .createQueryBuilder("request")
+      .leftJoinAndSelect("request.etudiant", "etudiant")
+      .leftJoinAndSelect("request.currentSection", "currentSection")
+      .leftJoinAndSelect("request.requestedSection", "requestedSection")
+      .leftJoinAndSelect("currentSection.department", "currentDepartment")
+      .leftJoinAndSelect("requestedSection.department", "requestedDepartment")
+      .where("request.requestType = :requestType", {
+        requestType: RequestType.SECTION,
+      });
+
+    // Filter by status if provided
+    if (status) {
+      queryBuilder.andWhere("request.status = :status", { status });
+    }
+
+    // Filter by department if provided
+    if (departmentId) {
+      queryBuilder.andWhere(
+        "(currentDepartment.id = :departmentId OR requestedDepartment.id = :departmentId)",
+        { departmentId }
+      );
+    }
+
+    // Order by most recent first
+    queryBuilder.orderBy("request.createdAt", "DESC");
+
+    return queryBuilder.getMany();
+  }
+
+  /**
+   * Get document data for a specific change request
+   */
+  async getRequestDocument(
+    requestId: string
+  ): Promise<{ data: Buffer; filename: string; mimetype: string }> {
+    const request = await this.requestRepo.findOne({
+      where: { id: requestId },
+    });
+
+    if (!request) {
+      throw new NotFoundException("Change request not found");
+    }
+
+    if (!request.documentData && !request.documentPath) {
+      throw new NotFoundException("No document attached to this request");
+    }
+
+    // Return the document data
+    return {
+      data: request.documentData,
+      filename: request.documentName || "document",
+      mimetype: request.documentMimeType || "application/octet-stream",
+    };
   }
 }

@@ -61,6 +61,9 @@ export class EtudiantController {
   @Roles(
     AdminRole.SECRETAIRE,
     AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.CHEF_DE_SPECIALITE,
+    AdminRole.DOYEN,
+    AdminRole.VICE_DOYEN,
     AdminRole.ENSEIGNANT
   )
   async findAll(
@@ -75,7 +78,16 @@ export class EtudiantController {
       throw new UnauthorizedException("User role not defined.");
     }
 
-    if (user.adminRole === AdminRole.ENSEIGNANT) {
+    // Allow all admin roles to access all students
+    if (
+      user.adminRole === AdminRole.SECRETAIRE ||
+      user.adminRole === AdminRole.CHEF_DE_DEPARTEMENT ||
+      user.adminRole === AdminRole.CHEF_DE_SPECIALITE ||
+      user.adminRole === AdminRole.DOYEN ||
+      user.adminRole === AdminRole.VICE_DOYEN
+    ) {
+      return this.etudiantService.findAll(page, limit, search);
+    } else if (user.adminRole === AdminRole.ENSEIGNANT) {
       if (!user.userId) {
         throw new UnauthorizedException("User ID not found for teacher.");
       }
@@ -89,11 +101,6 @@ export class EtudiantController {
         limit,
         search
       );
-    } else if (
-      user.adminRole === AdminRole.SECRETAIRE ||
-      user.adminRole === AdminRole.CHEF_DE_DEPARTEMENT
-    ) {
-      return this.etudiantService.findAll(page, limit, search);
     } else {
       throw new UnauthorizedException(
         "Insufficient permissions to view student list."

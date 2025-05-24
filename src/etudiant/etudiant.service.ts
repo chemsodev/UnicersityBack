@@ -31,10 +31,7 @@ export class EtudiantService {
     const query = this.etudiantRepo
       .createQueryBuilder("etudiant")
       .leftJoinAndSelect("etudiant.sections", "sections")
-      .leftJoinAndSelect("etudiant.notesReleve", "notesReleve")
-      .leftJoinAndSelect("etudiant.schedules", "schedules")
-      .take(limit)
-      .skip(skip);
+      .leftJoinAndSelect("etudiant.schedules", "schedules");
 
     if (search) {
       query.where([
@@ -155,7 +152,6 @@ export class EtudiantService {
       const updatedEtudiant = await this.etudiantRepo
         .createQueryBuilder("etudiant")
         .leftJoinAndSelect("etudiant.sections", "sections")
-        .leftJoinAndSelect("etudiant.notesReleve", "notesReleve")
         .leftJoinAndSelect("etudiant.schedules", "schedules")
         .where("etudiant.id = :id", { id: entityId })
         .getOne();

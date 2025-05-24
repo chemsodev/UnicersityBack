@@ -13,6 +13,9 @@ import { NotificationsService } from "./notifications.service";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
 import { Notification } from "./notification.entity";
 import { AuthGuard } from "../auth/auth.guard";
+import { RolesGuard } from "../roles/roles.guard";
+import { Roles } from "../roles/roles.decorator";
+import { AdminRole } from "../user.entity";
 
 @Controller("notifications")
 @UseGuards(AuthGuard)
@@ -69,5 +72,22 @@ export class NotificationsController {
   @Delete("read/all")
   async removeAllRead(@Request() req): Promise<void> {
     return this.notificationsService.removeAllRead(req.user.userId);
+  }
+
+  @Get("admin/notifications")
+  @UseGuards(RolesGuard)
+  @Roles(
+    AdminRole.DOYEN,
+    AdminRole.VICE_DOYEN,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.CHEF_DE_SPECIALITE,
+    AdminRole.SECRETAIRE
+  )
+  async getAdminNotifications(@Request() req): Promise<Notification[]> {
+    // Get admin-related notifications based on the admin's role
+    return this.notificationsService.findAdminNotifications(
+      req.user.adminRole,
+      req.user.userId
+    );
   }
 }

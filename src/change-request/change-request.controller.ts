@@ -13,6 +13,7 @@ import {
   BadRequestException,
   Res,
   NotFoundException,
+  Query,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ChangeRequestService } from "./change-request.service";
@@ -68,10 +69,10 @@ export class ChangeRequestController {
     const documentData = document ? document.buffer : null;
     const documentName = document ? document.originalname : null;
     const documentMimeType = document ? document.mimetype : null;
-    
+
     return this.service.createRequest(
-      req.user.userId, 
-      createDto, 
+      req.user.userId,
+      createDto,
       null, // No longer storing paths
       documentData,
       documentName,
@@ -88,9 +89,9 @@ export class ChangeRequestController {
       requestType: RequestType.SECTION,
       currentId: body.currentSectionId,
       requestedId: body.requestedSectionId,
-      justification: body.justification
+      justification: body.justification,
     };
-    
+
     return this.service.createRequest(req.user.userId, createDto);
   }
 
@@ -121,11 +122,11 @@ export class ChangeRequestController {
     @UploadedFile() document?: Express.Multer.File
   ) {
     console.log("Processing section request with document");
-    
+
     try {
       // If a JSON data field is provided, parse it
       let sectionData;
-      if (body.data && typeof body.data === 'string') {
+      if (body.data && typeof body.data === "string") {
         try {
           sectionData = JSON.parse(body.data);
         } catch (e) {
@@ -134,39 +135,43 @@ export class ChangeRequestController {
       } else {
         sectionData = body;
       }
-      
+
       // Log the received data
       console.log("Section data:", sectionData);
-      
+
       // Create a standard DTO from the section-specific data
       const createDto: CreateChangeRequestDto = {
         requestType: RequestType.SECTION,
         currentId: sectionData.currentSectionId,
         requestedId: sectionData.requestedSectionId,
-        justification: sectionData.justification
+        justification: sectionData.justification,
       };
-      
+
       // Check if all required fields are present
       if (!createDto.justification) {
         throw new BadRequestException("Justification is required");
       }
-      
+
       if (!createDto.currentId || !createDto.requestedId) {
-        throw new BadRequestException("Current and requested section IDs are required");
+        throw new BadRequestException(
+          "Current and requested section IDs are required"
+        );
       }
-      
+
       // Store file in memory
       const documentData = document ? document.buffer : null;
       const documentName = document ? document.originalname : null;
       const documentMimeType = document ? document.mimetype : null;
-      
-    if (document) {
-        console.log(`Document received: ${documentName}, ${documentMimeType}, Size: ${documentData.length} bytes`);
+
+      if (document) {
+        console.log(
+          `Document received: ${documentName}, ${documentMimeType}, Size: ${documentData.length} bytes`
+        );
       }
-      
+
       return this.service.createRequest(
-        req.user.userId, 
-        createDto, 
+        req.user.userId,
+        createDto,
         null, // No longer storing paths
         documentData,
         documentName,
@@ -177,7 +182,7 @@ export class ChangeRequestController {
       throw error;
     }
   }
-  
+
   @Post("group")
   @UseGuards(RolesGuard)
   @Roles(AdminRole.ETUDIANT)
@@ -205,113 +210,144 @@ export class ChangeRequestController {
     @UploadedFile() document?: Express.Multer.File
   ) {
     console.log("Processing group request with document");
-    
+
     try {
       console.log("Body received:", body);
-      
+
       // Validate required fields
-      if (!body.requestType || !body.currentId || !body.requestedId || !body.justification) {
-        console.log("Missing required fields:", { 
-          requestType: body.requestType, 
-          currentId: body.currentId, 
-          requestedId: body.requestedId, 
-          justification: body.justification 
+      if (
+        !body.requestType ||
+        !body.currentId ||
+        !body.requestedId ||
+        !body.justification
+      ) {
+        console.log("Missing required fields:", {
+          requestType: body.requestType,
+          currentId: body.currentId,
+          requestedId: body.requestedId,
+          justification: body.justification,
         });
-        throw new BadRequestException("Missing required fields for group change request");
+        throw new BadRequestException(
+          "Missing required fields for group change request"
+        );
       }
-      
+
       // Ensure the request type matches (both TD or both TP)
-      const requestType = body.requestType === "groupe_td" ? 
-        RequestType.GROUPE_TD : RequestType.GROUPE_TP;
-      
+      const requestType =
+        body.requestType === "groupe_td"
+          ? RequestType.GROUPE_TD
+          : RequestType.GROUPE_TP;
+
       // Validate that the current and requested groups match the request type
       if (requestType === RequestType.GROUPE_TD) {
         // For TD group changes, validate current and requested are both TD groups
         const currentGroup = await this.service.getGroupById(body.currentId);
-        const requestedGroup = await this.service.getGroupById(body.requestedId);
-        
+        const requestedGroup = await this.service.getGroupById(
+          body.requestedId
+        );
+
         if (!currentGroup || !requestedGroup) {
-          throw new BadRequestException("One or both of the specified groups were not found");
+          throw new BadRequestException(
+            "One or both of the specified groups were not found"
+          );
         }
-        
+
         // For TD groups, verify by checking if name contains "TD" or type is 'td'
-        const isCurrentTD = currentGroup.type === 'td' || currentGroup.name.toLowerCase().includes('td');
-        const isRequestedTD = requestedGroup.type === 'td' || requestedGroup.name.toLowerCase().includes('td');
-        
+        const isCurrentTD =
+          currentGroup.type === "td" ||
+          currentGroup.name.toLowerCase().includes("td");
+        const isRequestedTD =
+          requestedGroup.type === "td" ||
+          requestedGroup.name.toLowerCase().includes("td");
+
         console.log("TD group validation:", {
           currentGroup: {
             id: currentGroup.id,
             name: currentGroup.name,
             type: currentGroup.type,
-            isValid: isCurrentTD
+            isValid: isCurrentTD,
           },
           requestedGroup: {
             id: requestedGroup.id,
             name: requestedGroup.name,
             type: requestedGroup.type,
-            isValid: isRequestedTD
-          }
+            isValid: isRequestedTD,
+          },
         });
-        
+
         if (!isCurrentTD || !isRequestedTD) {
-          throw new BadRequestException("Pour un changement de groupe TD, le groupe actuel et le groupe demandé doivent être des groupes TD");
+          throw new BadRequestException(
+            "Pour un changement de groupe TD, le groupe actuel et le groupe demandé doivent être des groupes TD"
+          );
         }
       } else if (requestType === RequestType.GROUPE_TP) {
         // For TP group changes, validate current and requested are both TP groups
         const currentGroup = await this.service.getGroupById(body.currentId);
-        const requestedGroup = await this.service.getGroupById(body.requestedId);
-        
+        const requestedGroup = await this.service.getGroupById(
+          body.requestedId
+        );
+
         if (!currentGroup || !requestedGroup) {
-          throw new BadRequestException("One or both of the specified groups were not found");
+          throw new BadRequestException(
+            "One or both of the specified groups were not found"
+          );
         }
-        
+
         // For TP groups, check either database type or name contains "TP" due to data inconsistency
-        const isCurrentTP = currentGroup.type === 'tp' || currentGroup.name.toLowerCase().includes('tp');
-        const isRequestedTP = requestedGroup.type === 'tp' || requestedGroup.name.toLowerCase().includes('tp');
-        
+        const isCurrentTP =
+          currentGroup.type === "tp" ||
+          currentGroup.name.toLowerCase().includes("tp");
+        const isRequestedTP =
+          requestedGroup.type === "tp" ||
+          requestedGroup.name.toLowerCase().includes("tp");
+
         console.log("TP group validation:", {
           currentGroup: {
             id: currentGroup.id,
             name: currentGroup.name,
             type: currentGroup.type,
-            isValid: isCurrentTP
+            isValid: isCurrentTP,
           },
           requestedGroup: {
             id: requestedGroup.id,
             name: requestedGroup.name,
             type: requestedGroup.type,
-            isValid: isRequestedTP
-          }
+            isValid: isRequestedTP,
+          },
         });
-        
+
         if (!isCurrentTP || !isRequestedTP) {
-          throw new BadRequestException("Pour un changement de groupe TP, le groupe actuel et le groupe demandé doivent être des groupes TP");
+          throw new BadRequestException(
+            "Pour un changement de groupe TP, le groupe actuel et le groupe demandé doivent être des groupes TP"
+          );
         }
       }
-      
+
       // Store file in memory instead of on disk
       const documentData = document ? document.buffer : null;
       const documentName = document ? document.originalname : null;
       const documentMimeType = document ? document.mimetype : null;
-      
+
       console.log("Parsed request type:", requestType);
-      
+
       const createDto: CreateChangeRequestDto = {
         requestType,
         currentId: body.currentId,
         requestedId: body.requestedId,
-        justification: body.justification
+        justification: body.justification,
       };
-      
+
       console.log("Created DTO:", createDto);
-      
+
       if (document) {
-        console.log(`Document received: ${documentName}, ${documentMimeType}, Size: ${documentData.length} bytes`);
+        console.log(
+          `Document received: ${documentName}, ${documentMimeType}, Size: ${documentData.length} bytes`
+        );
       }
-      
+
       return this.service.createRequest(
-        req.user.userId, 
-        createDto, 
+        req.user.userId,
+        createDto,
         null,
         documentData,
         documentName,
@@ -374,52 +410,58 @@ export class ChangeRequestController {
     // Admin users can access any request
     return this.service.getRequestById(id);
   }
-  
+
   @Get(":id/document")
   async getRequestDocument(@Param("id") id: string, @Res() res: Response) {
     try {
       const request = await this.service.getRequestWithDocument(id);
-      
+
       if (!request) {
         throw new NotFoundException("Request not found");
       }
-      
+
       // Check if document data exists and has actual content
       if (!request.documentData || request.documentData.length === 0) {
         console.log(`No document found for request ${id}`);
-        
+
         // Return a 204 No Content response instead of an error
         return res.status(204).send();
       }
-      
-      console.log(`Serving document: ${request.documentName}, ${request.documentMimeType}, Size: ${request.documentData.length} bytes`);
-      
+
+      console.log(
+        `Serving document: ${request.documentName}, ${request.documentMimeType}, Size: ${request.documentData.length} bytes`
+      );
+
       // Check if we need to set a fallback MIME type based on file extension
-      let mimeType = request.documentMimeType || 'application/octet-stream';
-      
-      if (!mimeType || mimeType === 'application/octet-stream') {
+      let mimeType = request.documentMimeType || "application/octet-stream";
+
+      if (!mimeType || mimeType === "application/octet-stream") {
         if (request.documentName) {
-          const extension = request.documentName.split('.').pop()?.toLowerCase();
+          const extension = request.documentName
+            .split(".")
+            .pop()
+            ?.toLowerCase();
           if (extension) {
             switch (extension) {
-              case 'jpg':
-              case 'jpeg':
-                mimeType = 'image/jpeg';
+              case "jpg":
+              case "jpeg":
+                mimeType = "image/jpeg";
                 break;
-              case 'png':
-                mimeType = 'image/png';
+              case "png":
+                mimeType = "image/png";
                 break;
-              case 'gif':
-                mimeType = 'image/gif';
+              case "gif":
+                mimeType = "image/gif";
                 break;
-              case 'pdf':
-                mimeType = 'application/pdf';
+              case "pdf":
+                mimeType = "application/pdf";
                 break;
-              case 'doc':
-                mimeType = 'application/msword';
+              case "doc":
+                mimeType = "application/msword";
                 break;
-              case 'docx':
-                mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+              case "docx":
+                mimeType =
+                  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                 break;
             }
           }
@@ -428,22 +470,56 @@ export class ChangeRequestController {
 
       // Enable caching for better performance
       res.set({
-        'Content-Type': mimeType,
-        'Content-Disposition': `inline; filename="${request.documentName || 'document'}"`,
-        'Content-Length': request.documentData.length,
-        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
-        'ETag': `"${id}"`
+        "Content-Type": mimeType,
+        "Content-Disposition": `inline; filename="${
+          request.documentName || "document"
+        }"`,
+        "Content-Length": request.documentData.length,
+        "Cache-Control": "public, max-age=86400", // Cache for 24 hours
+        ETag: `"${id}"`,
       });
-      
+
       // Send the binary data directly to the client
       return res.send(request.documentData);
     } catch (error) {
-      console.error('Error retrieving document:', error);
+      console.error("Error retrieving document:", error);
       if (error instanceof NotFoundException) {
         throw error;
       } else {
-        throw new BadRequestException(`Failed to retrieve document: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to retrieve document: ${error.message}`
+        );
       }
     }
+  }
+  @Get(":id/document")
+  @UseGuards(AuthGuard)
+  async downloadDocument(@Param("id") id: string, @Res() res: any) {
+    const document = await this.service.getRequestDocument(id);
+
+    // Set the appropriate headers for file download
+    res.setHeader("Content-Type", document.mimetype);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${encodeURIComponent(document.filename)}`
+    );
+
+    // Send the document data
+    return res.send(document.data);
+  }
+
+  @Get("section")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(
+    AdminRole.DOYEN,
+    AdminRole.VICE_DOYEN,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.CHEF_DE_SPECIALITE
+  )
+  async getSectionChangeRequests(
+    @Query("status") status?: RequestStatus,
+    @Query("departmentId") departmentId?: string
+  ) {
+    return this.service.findSectionChangeRequests(status, departmentId);
   }
 }

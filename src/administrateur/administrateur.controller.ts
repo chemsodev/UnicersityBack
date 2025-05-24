@@ -20,6 +20,7 @@ import { RolesGuard } from "../roles/roles.guard";
 import { Roles } from "../roles/roles.decorator";
 import { AdminRole } from "../user.entity";
 import { HierarchyAccessDto } from "./dto/hierarchy-access.dto";
+import { DashboardStatsDto } from "./dto/dashboard-stats.dto";
 
 @Controller("administrateurs")
 export class AdministrateurController {
@@ -208,5 +209,13 @@ export class AdministrateurController {
       dto.targetRole
     );
     return { allowed };
+  }
+
+  @Get("dashboard/stats")
+  @UseGuards(JwtAuthGuard)
+  async getDashboardStats(@Request() req): Promise<DashboardStatsDto> {
+    // Extract user ID from JWT token
+    const userId = req.user?.userId;
+    return this.administrateurService.getDashboardStats(userId);
   }
 }

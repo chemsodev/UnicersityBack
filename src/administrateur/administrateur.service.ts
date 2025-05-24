@@ -10,12 +10,15 @@ import { AdminRole, User } from "../user.entity";
 import { CreateAdministrateurDto } from "./dto/create-administrateur.dto";
 import { UpdateAdministrateurDto } from "./dto/update-administrateur.dto";
 import { toNumberOrStringId } from "../utils/id-conversion.util";
+import { DashboardStatsDto } from "./dto/dashboard-stats.dto";
 
 @Injectable()
 export class AdministrateurService {
   constructor(
     @InjectRepository(Administrateur)
-    private readonly administrateurRepository: Repository<Administrateur>
+    private readonly administrateurRepository: Repository<Administrateur>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>
   ) {}
 
   async create(
@@ -210,5 +213,46 @@ export class AdministrateurService {
         adminRole: In(subordinateRoles),
       },
     });
+  }
+  /**
+   * Retrieves dashboard statistics for an admin user
+   */
+  async getDashboardStats(adminId?: number): Promise<DashboardStatsDto> {
+    // Get counts from database
+    const teachersCount = await this.userRepository.count({
+      where: { adminRole: AdminRole.ENSEIGNANT },
+    });
+
+    const studentsCount = await this.userRepository.count({
+      where: { adminRole: AdminRole.ETUDIANT },
+    });
+
+    // Get sections count from the Section repository
+    let sectionsCount = 0;
+    try {
+      const sectionRepo = this.userRepository.manager.getRepository("Section");
+      sectionsCount = await sectionRepo.count();
+    } catch (error) {
+      console.error("Error counting sections:", error);
+    }
+
+    // Get pending requests count from the ChangeRequest repository
+    let pendingRequestsCount = 0;
+    try {
+      const requestRepo =
+        this.userRepository.manager.getRepository("change_requests");
+      pendingRequestsCount = await requestRepo.count({
+        where: { status: "pending" },
+      });
+    } catch (error) {
+      console.error("Error counting pending requests:", error);
+    }
+
+    return {
+      teachersCount,
+      studentsCount,
+      sectionsCount,
+      pendingRequestsCount,
+    };
   }
 }

@@ -190,13 +190,6 @@ export class EnseignantController {
     return this.enseignantService.getSectionsResponsable(teacherId);
   }
 
-  @Get("by-id/:idEnseignant")
-  async findByIdEnseignant(
-    @Param("idEnseignant") idEnseignant: string
-  ): Promise<Enseignant> {
-    return this.enseignantService.findByIdEnseignant(idEnseignant);
-  }
-
   @Get(":teacherId/sections/:sectionId/students")
   async getStudentsForSection(
     @Param("teacherId") teacherId: string,

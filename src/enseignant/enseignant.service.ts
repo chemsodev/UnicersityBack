@@ -18,12 +18,17 @@ import {
   RequestType,
 } from "../change-request/change-request.entity";
 import { Groupe } from "../groupe/groupe.entity";
+import * as bcrypt from "bcrypt";
+import { AdminRole, User } from "../user.entity";
 
 @Injectable()
 export class EnseignantService {
   constructor(
     @InjectRepository(Enseignant)
     private readonly enseignantRepository: Repository<Enseignant>,
+
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
 
     @InjectRepository(Schedule)
     private readonly scheduleRepository: Repository<Schedule>,
@@ -38,22 +43,78 @@ export class EnseignantService {
     @InjectRepository(Groupe)
     private readonly groupeRepository: Repository<Groupe>
   ) {}
-
   async create(createEnseignantDto: CreateEnseignantDto): Promise<Enseignant> {
-    const enseignant = this.enseignantRepository.create(createEnseignantDto);
-    return await this.enseignantRepository.save(enseignant);
-  }
+    // Check for email uniqueness across all users first
+    const existingEmail = await this.userRepository.findOne({
+      where: { email: createEnseignantDto.email },
+    });
 
+    if (existingEmail) {
+      throw new ForbiddenException(
+        "Cet email est déjà utilisé par un autre utilisateur."
+      );
+    }
+
+    // Hash password
+    if (!createEnseignantDto.password) {
+      throw new Error("Password is required");
+    }
+    const hashedPassword = await bcrypt.hash(createEnseignantDto.password, 10);
+
+    // Set role to 'enseignant' by default
+    const role =
+      createEnseignantDto.role &&
+      createEnseignantDto.role === AdminRole.ENSEIGNANT
+        ? createEnseignantDto.role
+        : AdminRole.ENSEIGNANT;
+
+    const enseignant = this.enseignantRepository.create({
+      ...createEnseignantDto,
+      password: hashedPassword,
+      adminRole: role,
+    });
+
+    try {
+      return await this.enseignantRepository.save(enseignant);
+    } catch (error) {
+      if (error.code === "23505") {
+        // PostgreSQL unique violation error code
+        throw new ForbiddenException(
+          "Cet email est déjà utilisé par un autre utilisateur."
+        );
+      }
+      throw error;
+    }
+  }
   async findAll(): Promise<Enseignant[]> {
     return this.enseignantRepository.find({
       relations: ["schedules"],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        matricule: true,
+        createdAt: true,
+        updatedAt: true,
+        adminRole: true,
+      },
     });
   }
-
   async findOne(id: number): Promise<Enseignant> {
     const enseignant = await this.enseignantRepository.findOne({
       where: { id },
       relations: ["schedules"],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        matricule: true,
+        createdAt: true,
+        updatedAt: true,
+        adminRole: true,
+      },
     });
 
     if (!enseignant) {
@@ -62,33 +123,93 @@ export class EnseignantService {
 
     return enseignant;
   }
-
-  async findByIdEnseignant(idEnseignant: string): Promise<Enseignant> {
-    const enseignant = await this.enseignantRepository.findOne({
-      where: { id_enseignant: idEnseignant },
-      relations: ["schedules"],
-    });
-
-    if (!enseignant) {
-      throw new NotFoundException(
-        `Enseignant with ID ${idEnseignant} not found`
-      );
-    }
-
-    return enseignant;
-  }
-
   async update(
     id: number,
     updateEnseignantDto: UpdateEnseignantDto
   ): Promise<Enseignant> {
     const enseignant = await this.findOne(id);
 
-    // Update the fields
-    Object.assign(enseignant, updateEnseignantDto);
+    console.log("=== UPDATE TEACHER DEBUG ===");
+    console.log("Teacher ID:", id);
+    console.log("Incoming DTO:", JSON.stringify(updateEnseignantDto, null, 2));
+    console.log(
+      "Current teacher:",
+      JSON.stringify(
+        {
+          id: enseignant.id,
+          email: enseignant.email,
+          firstName: enseignant.firstName,
+          lastName: enseignant.lastName,
+          matricule: enseignant.matricule,
+        },
+        null,
+        2
+      )
+    );
+    console.log("Email comparison:");
+    console.log("- Incoming email:", updateEnseignantDto.email);
+    console.log("- Current email:", enseignant.email);
+    console.log("- Same?:", updateEnseignantDto.email === enseignant.email);
+    console.log("- Email in DTO?:", "email" in updateEnseignantDto);
+    console.log("- Email truthy?:", !!updateEnseignantDto.email);
 
-    // Save the updated enseignant
-    return this.enseignantRepository.save(enseignant);
+    // Check for email uniqueness if email is being updated
+    if (updateEnseignantDto.email) {
+      // Only check if email is actually different
+      if (updateEnseignantDto.email !== enseignant.email) {
+        console.log("✓ Email changed, checking uniqueness...");
+        const existing = await this.userRepository.findOne({
+          where: { email: updateEnseignantDto.email },
+        });
+        console.log("Existing user found:", existing);
+        if (existing && existing.id !== id) {
+          console.log(
+            "✗ Email conflict - existing user ID:",
+            existing.id,
+            "current teacher ID:",
+            id
+          );
+          throw new ForbiddenException(
+            "Cet email est déjà utilisé par un autre utilisateur."
+          );
+        }
+        console.log("✓ Email is unique, proceeding...");
+      } else {
+        console.log("✓ Email not changed, skipping uniqueness check");
+      }
+    } else {
+      console.log("✓ No email in update, skipping email checks");
+    }
+
+    // If password is being updated, hash it
+    if (updateEnseignantDto.password) {
+      updateEnseignantDto.password = await bcrypt.hash(
+        updateEnseignantDto.password,
+        10
+      );
+    }
+
+    // Enforce role to 'enseignant' only
+    updateEnseignantDto.role = AdminRole.ENSEIGNANT;
+
+    Object.assign(enseignant, updateEnseignantDto);
+    enseignant.adminRole = AdminRole.ENSEIGNANT;
+
+    try {
+      return await this.enseignantRepository.save(enseignant);
+    } catch (error) {
+      console.error("Database error in update:", error);
+      if (error.code === "23505") {
+        // PostgreSQL unique violation error code
+        if (error.detail && error.detail.includes("email")) {
+          throw new ForbiddenException(
+            "Cet email est déjà utilisé par un autre utilisateur."
+          );
+        }
+        throw new ForbiddenException("Une contrainte d'unicité a été violée.");
+      }
+      throw error;
+    }
   }
 
   async remove(id: number): Promise<void> {

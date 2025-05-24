@@ -1,10 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Notification } from "./notification.entity";
+import { Notification, NotificationType } from "./notification.entity";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
 import { CreateBulkNotificationDto } from "./dto/create-bulk-notification.dto";
 import { toNumberOrStringId } from "../utils/id-conversion.util";
+import { AdminRole } from "../user.entity";
 
 @Injectable()
 export class NotificationsService {
@@ -149,5 +150,72 @@ export class NotificationsService {
 
     // Save all notifications in one batch
     return await this.notificationRepository.save(notifications);
+  }
+  /**
+   * Find notifications relevant for admin users based on their role
+   */
+  async findAdminNotifications(
+    adminRole: AdminRole,
+    userId: string
+  ): Promise<Notification[]> {
+    const entityId = toNumberOrStringId(userId);
+
+    // Start with a base query for admin notifications
+    const queryBuilder =
+      this.notificationRepository.createQueryBuilder("notification");
+
+    // Add conditions based on admin role hierarchy
+    if (adminRole === AdminRole.DOYEN) {
+      // Doyen sees all admin notifications
+      queryBuilder.where("notification.type = :type", {
+        type: NotificationType.ADMIN,
+      });
+    } else if (adminRole === AdminRole.VICE_DOYEN) {
+      // Vice doyen sees notifications for their level and below
+      queryBuilder.where(
+        "(notification.type = :type AND notification.metadata->>'targetRole' IN (:...roles))",
+        {
+          type: NotificationType.ADMIN,
+          roles: [
+            "vice-doyen",
+            "chef-de-departement",
+            "chef-de-specialite",
+            "secretaire",
+          ],
+        }
+      );
+    } else if (adminRole === AdminRole.CHEF_DE_DEPARTEMENT) {
+      // Department head sees notifications for their level and below
+      queryBuilder.where(
+        "(notification.type = :type AND notification.metadata->>'targetRole' IN (:...roles))",
+        {
+          type: NotificationType.ADMIN,
+          roles: ["chef-de-departement", "chef-de-specialite", "secretaire"],
+        }
+      );
+    } else if (adminRole === AdminRole.CHEF_DE_SPECIALITE) {
+      // Specialty head sees notifications for their level and secretaries
+      queryBuilder.where(
+        "(notification.type = :type AND notification.metadata->>'targetRole' IN (:...roles))",
+        {
+          type: NotificationType.ADMIN,
+          roles: ["chef-de-specialite", "secretaire"],
+        }
+      );
+    } else {
+      // Other admins see only their personal notifications
+      queryBuilder.where(
+        "notification.userId = :userId AND notification.type = :type",
+        {
+          userId: entityId,
+          type: NotificationType.ADMIN,
+        }
+      );
+    }
+
+    // Order by creation date, newest first
+    queryBuilder.orderBy("notification.createdAt", "DESC");
+
+    return queryBuilder.getMany();
   }
 }
