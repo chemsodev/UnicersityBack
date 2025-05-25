@@ -30,14 +30,17 @@ export class SectionController {
   create(@Body() createSectionDto: CreateSectionDto, @Request() req) {
     return this.sectionService.create(createSectionDto, req.user.id);
   }
-
   @Get()
   findAll(
     @Query("departmentId") departmentId?: string,
     @Query("level") level?: string,
     @Query("specialty") specialty?: string
   ) {
-    return this.sectionService.findAll(departmentId, level, specialty);
+    return this.sectionService.findAll(
+      departmentId ? +departmentId : undefined,
+      level,
+      specialty
+    );
   }
 
   @Get(":id")

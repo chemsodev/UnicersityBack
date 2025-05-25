@@ -4,7 +4,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 @Entity({ name: "departments" })
 export class Department {
   @PrimaryGeneratedColumn()
-  id: string;
+  id: number;
 
   @Column({ length: 100 })
   name: string;
@@ -15,6 +15,8 @@ export class Department {
   @Column({ length: 100 })
   headOfDepartment: string;
 
-  @OneToMany(() => Section, (section) => section.department)
+  @OneToMany(() => Section, (section) => section.department, {
+    cascade: true,
+  })
   sections: Section[];
 }

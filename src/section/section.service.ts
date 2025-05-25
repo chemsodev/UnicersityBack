@@ -40,32 +40,52 @@ export class SectionService {
     createSectionDto: CreateSectionDto,
     adminId: string
   ): Promise<Section> {
-    const department = await this.departmentRepo.findOneBy({
-      id: createSectionDto.departmentId,
-    });
-    if (!department) {
-      throw new NotFoundException("Department not found");
+    try {
+      const department = await this.departmentRepo.findOneBy({
+        id: createSectionDto.departmentId,
+      });
+      if (!department) {
+        throw new NotFoundException(
+          `Department with ID ${createSectionDto.departmentId} not found`
+        );
+      }
+
+      const section = this.sectionRepo.create({
+        ...createSectionDto,
+        department,
+      });
+
+      const savedSection = await this.sectionRepo.save(section);
+
+      // Get all students in the department through their sections
+      const students = await this.etudiantRepo
+        .createQueryBuilder("etudiant")
+        .innerJoin("etudiant.sections", "section")
+        .where("section.departmentId = :departmentId", {
+          departmentId: department.id,
+        })
+        .getMany();
+
+      // Create notifications for each student
+      for (const student of students) {
+        await this.notificationsService.create({
+          title: "Nouvelle section créée",
+          content: `Une nouvelle section ${savedSection.name} a été créée dans votre département.`,
+          type: NotificationType.ADMIN,
+          userId: student.id,
+        });
+      }
+
+      return savedSection;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Error creating section: ${error.message}`);
     }
-
-    const section = this.sectionRepo.create({
-      ...createSectionDto,
-      department,
-    });
-
-    const savedSection = await this.sectionRepo.save(section);
-
-    await this.notificationsService.create({
-      title: "Nouvelle section créée",
-      content: `Une nouvelle section ${savedSection.name} a été créée.`,
-      type: NotificationType.ADMIN,
-      userId: adminId,
-    });
-
-    return savedSection;
   }
-
   findAll(
-    departmentId?: string,
+    departmentId?: number,
     level?: string,
     specialty?: string
   ): Promise<Section[]> {

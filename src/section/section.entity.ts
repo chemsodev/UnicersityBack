@@ -12,6 +12,7 @@ import {
   ManyToMany,
   OneToMany,
   JoinTable,
+  JoinColumn,
 } from "typeorm";
 
 @Entity({ name: "sections" })
@@ -43,8 +44,15 @@ export class Section {
   @Column({ length: 20 })
   code: string;
 
-  @ManyToOne(() => Department, (dept) => dept.sections)
+  @ManyToOne(() => Department, (dept) => dept.sections, {
+    onDelete: "CASCADE",
+    nullable: false,
+  })
+  @JoinColumn({ name: "department_id" })
   department: Department;
+
+  @Column({ name: "department_id", type: "integer", nullable: false })
+  departmentId: number;
 
   @ManyToMany(() => Etudiant, (etudiant) => etudiant.sections)
   @JoinTable({

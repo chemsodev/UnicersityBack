@@ -391,10 +391,23 @@ export class ChangeRequestController {
     const updateDto: UpdateRequestStatusDto = {
       status: RequestStatus.CANCELLED,
       responseMessage: "Demande annulée par l'étudiant",
-    };
-
-    // Make sure the request belongs to the current user
+    }; // Make sure the request belongs to the current user
     return this.service.cancelStudentRequest(req.user.userId, id, updateDto);
+  }
+
+  @Get("section")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(
+    AdminRole.DOYEN,
+    AdminRole.VICE_DOYEN,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.CHEF_DE_SPECIALITE
+  )
+  async getSectionChangeRequests(
+    @Query("status") status?: RequestStatus,
+    @Query("departmentId") departmentId?: string
+  ) {
+    return this.service.findSectionChangeRequests(status, departmentId);
   }
 
   @Get(":id")
@@ -502,24 +515,7 @@ export class ChangeRequestController {
     res.setHeader(
       "Content-Disposition",
       `attachment; filename=${encodeURIComponent(document.filename)}`
-    );
-
-    // Send the document data
+    ); // Send the document data
     return res.send(document.data);
-  }
-
-  @Get("section")
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(
-    AdminRole.DOYEN,
-    AdminRole.VICE_DOYEN,
-    AdminRole.CHEF_DE_DEPARTEMENT,
-    AdminRole.CHEF_DE_SPECIALITE
-  )
-  async getSectionChangeRequests(
-    @Query("status") status?: RequestStatus,
-    @Query("departmentId") departmentId?: string
-  ) {
-    return this.service.findSectionChangeRequests(status, departmentId);
   }
 }

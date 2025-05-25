@@ -7,12 +7,12 @@ import { Etudiant } from "../../etudiant/etudiant.entity";
 import { Groupe, GroupeType } from "../../groupe/groupe.entity";
 import { Schedule } from "../../schedules/entities/schedule.entity";
 
-export class SectionStatisticsDto {
+export interface SectionStatisticsDto {
   id: string;
   name: string;
   level: string;
   specialty: string;
-  departmentId: string;
+  departmentId: number;
   departmentName: string;
   capacity: number;
   studentCount: number;
@@ -22,13 +22,22 @@ export class SectionStatisticsDto {
   delegateName?: string;
 }
 
-export class SectionAnalyticsDto {
+export interface SectionAnalyticsDto {
   totalStudents: number;
   totalCapacity: number;
   averageOccupancyRate: string;
   sectionsByLevel: { level: string; count: number }[];
   sectionsBySpecialty: { specialty: string; count: number }[];
   sectionsByOccupancy: { range: string; count: number }[];
+}
+
+export interface SectionGrowthStatistics {
+  sectionId: string;
+  sectionName: string;
+  currentYearStudents: number;
+  previousYearStudents: number;
+  growthRate: string;
+  growthTrend: "increasing" | "decreasing" | "stable";
 }
 
 @Injectable()
@@ -233,7 +242,9 @@ export class SectionStatisticsService {
    * Get section growth statistics comparing current academic year with previous
    * @param sectionId Section ID to get growth statistics for
    */
-  async getSectionGrowthStatistics(sectionId: string) {
+  async getSectionGrowthStatistics(
+    sectionId: string
+  ): Promise<SectionGrowthStatistics> {
     const section = await this.sectionRepo.findOne({
       where: { id: sectionId },
     });

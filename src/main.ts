@@ -5,21 +5,35 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+      whitelist: true,
+    })
+  );
   app.enableCors({
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
       "http://127.0.0.1:5500",
+      "http://127.0.0.1:5502",
       "http://localhost:3001",
       "http://localhost:8080",
       "http://127.0.0.1:8080",
       "null", // For file:// protocol
       "*", // Allow all origins during development
     ],
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: "Content-Type, Accept, Authorization",
+    allowedHeaders: [
+      "Content-Type",
+      "Accept",
+      "Authorization",
+      "X-Requested-With",
+    ],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   app.setGlobalPrefix("api");

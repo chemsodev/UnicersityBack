@@ -106,61 +106,22 @@ export class ProfileRequestsService {
     }
   }
   private async applyProfileChanges(request: ProfileRequest) {
-    // Create update object with only the fields that were requested to change
+    // Create update object with only the fields that actually exist in the Etudiant/User entities
     const updateData = {};
 
-    // Handle legacy fields (for backward compatibility)
-    if (request.adresseEmailPersonnelle !== undefined) {
-      updateData["adresseEmailPersonnelle"] = request.adresseEmailPersonnelle;
-    }
-
+    // Only update the phone field since it's the only contact field that exists in Etudiant entity
     if (request.numeroTelephonePrincipal !== undefined) {
       updateData["phone"] = request.numeroTelephonePrincipal;
     }
 
-    if (request.numeroTelephoneSecondaire !== undefined) {
-      updateData["secondaryPhone"] = request.numeroTelephoneSecondaire;
-    }
-
-    if (request.adressePostale !== undefined) {
-      updateData["address"] = request.adressePostale;
-    }
-
-    if (request.codePostal !== undefined) {
-      updateData["postalCode"] = request.codePostal;
-    }
-
-    if (request.ville !== undefined) {
-      updateData["city"] = request.ville;
-    }
-
-    if (request.contactEnCasDurgence !== undefined) {
-      updateData["emergencyContact"] = request.contactEnCasDurgence;
-    }
-
     // Handle new changes object if present
     if (request.changes) {
-      if (request.changes.personalEmail) {
-        updateData["adresseEmailPersonnelle"] = request.changes.personalEmail;
-      }
       if (request.changes.phone) {
         updateData["phone"] = request.changes.phone;
       }
-      if (request.changes.secondaryPhone) {
-        updateData["secondaryPhone"] = request.changes.secondaryPhone;
-      }
-      if (request.changes.address) {
-        updateData["address"] = request.changes.address;
-      }
-      if (request.changes.postalCode) {
-        updateData["postalCode"] = request.changes.postalCode;
-      }
-      if (request.changes.city) {
-        updateData["city"] = request.changes.city;
-      }
-      if (request.changes.emergencyContact) {
-        updateData["emergencyContact"] = request.changes.emergencyContact;
-      }
+      // Note: Other fields like secondaryPhone, address, postalCode, city, emergencyContact
+      // don't exist in the Etudiant entity, so we skip them for now
+      // In the future, the Etudiant entity would need to be extended to support these fields
     }
 
     // Only update if there are changes to apply
