@@ -11,9 +11,9 @@ import { Enseignant } from "../../enseignant/enseignant.entity";
 import { Section } from "../../section/section.entity";
 
 export enum ScheduleType {
-  REGULAR = "regular",   // Regular weekly schedule
-  EXAM = "exam",         // Exam schedule
-  SPECIAL = "special",   // Special events
+  REGULAR = "regular", // Regular weekly schedule
+  EXAM = "exam", // Exam schedule
+  SPECIAL = "special", // Special events
 }
 
 @Entity("schedules")
@@ -24,7 +24,7 @@ export class Schedule {
   @Column({
     type: "enum",
     enum: ScheduleType,
-    default: ScheduleType.REGULAR
+    default: ScheduleType.REGULAR,
   })
   scheduleType: ScheduleType;
 
@@ -71,4 +71,16 @@ export class Schedule {
 
   @Column({ nullable: true })
   weekNumber: number;
+
+  @Column({ type: "time", nullable: true })
+  startTime: string;
+
+  @Column({ type: "time", nullable: true })
+  endTime: string;
+
+  @Column({ nullable: true })
+  day: string;
+
+  @Column({ nullable: true })
+  room: string;
 }

@@ -10,7 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
-  BadRequestException
+  BadRequestException,
 } from "@nestjs/common";
 import { ScheduleService } from "./schedules.service";
 import { CreateScheduleDto } from "./dto/create-schedule.dto";
@@ -31,21 +31,31 @@ export class SchedulesController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT, AdminRole.ENSEIGNANT)
-  async create(@Body() createScheduleDto: CreateScheduleDto): Promise<Schedule> {
+  @Roles(
+    AdminRole.SECRETAIRE,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.ENSEIGNANT
+  )
+  async create(
+    @Body() createScheduleDto: CreateScheduleDto
+  ): Promise<Schedule> {
     return this.scheduleService.create(createScheduleDto);
   }
 
-  @Post('upload')
+  @Post("upload")
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT, AdminRole.ENSEIGNANT)
-  @UseInterceptors(FileInterceptor('document'))
+  @Roles(
+    AdminRole.SECRETAIRE,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.ENSEIGNANT
+  )
+  @UseInterceptors(FileInterceptor("document"))
   async uploadSchedule(
     @Body() createScheduleDto: CreateScheduleDto,
     @UploadedFile() document: Express.Multer.File
   ): Promise<Schedule> {
     if (!document) {
-      throw new BadRequestException('No file uploaded');
+      throw new BadRequestException("No file uploaded");
     }
     return this.scheduleService.createWithDocument(createScheduleDto, document);
   }
@@ -55,63 +65,83 @@ export class SchedulesController {
     return this.scheduleService.findAll();
   }
 
-  @Get('section/:sectionId')
-  async findBySection(@Param('sectionId') sectionId: string): Promise<Schedule[]> {
+  @Get("section/:sectionId")
+  async findBySection(
+    @Param("sectionId") sectionId: string
+  ): Promise<Schedule[]> {
     return this.scheduleService.findBySection(sectionId);
   }
-  
-  @Get('section/:sectionId/latest')
-  async findLatestBySection(@Param('sectionId') sectionId: string): Promise<Schedule> {
+
+  @Get("section/:sectionId/latest")
+  async findLatestBySection(
+    @Param("sectionId") sectionId: string
+  ): Promise<Schedule> {
     return this.scheduleService.findLatestBySection(sectionId);
   }
 
-  @Get('specialty/:specialty/level/:level/exams')
+  @Get("specialty/:specialty/level/:level/exams")
   async findExamSchedulesBySpecialtyAndLevel(
-    @Param('specialty') specialty: string,
-    @Param('level') level: string
+    @Param("specialty") specialty: string,
+    @Param("level") level: string
   ): Promise<Schedule[]> {
-    return this.scheduleService.findExamSchedulesBySpecialtyAndLevel(specialty, level);
-  }
-  
-  @Get('section/:sectionId/type/:type')
-  async findSchedulesByType(
-    @Param('sectionId') sectionId: string,
-    @Param('type') type: ScheduleType
-  ): Promise<Schedule[]> {
-    return this.scheduleService.findSchedulesByType(sectionId, type);
+    return this.scheduleService.findExamSchedulesBySpecialtyAndLevel(
+      specialty,
+      level
+    );
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string): Promise<Schedule> {
+  @Get("section/:sectionId/type/:type")
+  async findSchedulesByType(
+    @Param("sectionId") sectionId: string,
+    @Param("type") type: string
+  ): Promise<Schedule[]> {
+    // Validate the type parameter
+    if (!type || !Object.values(ScheduleType).includes(type as ScheduleType)) {
+      throw new BadRequestException(
+        "Invalid schedule type. Must be one of: regular, exam, special"
+      );
+    }
+    return this.scheduleService.findSchedulesByType(
+      sectionId,
+      type as ScheduleType
+    );
+  }
+
+  @Get(":id")
+  async findOne(@Param("id") id: string): Promise<Schedule> {
     return this.scheduleService.findOne(id);
   }
 
-  @Get(':id/document')
-  async getScheduleDocument(@Param('id') id: string, @Res() res: Response) {
+  @Get(":id/document")
+  async getScheduleDocument(@Param("id") id: string, @Res() res: Response) {
     try {
       const schedule = await this.scheduleService.getScheduleWithDocument(id);
-      
+
       if (!schedule) {
-        throw new BadRequestException('Schedule not found');
+        throw new BadRequestException("Schedule not found");
       }
-      
+
       // Check if document data exists and has actual content
       if (!schedule.documentData || schedule.documentData.length === 0) {
         console.log(`No document found for schedule ${id}`);
-        
+
         // Return a 204 No Content response instead of an error
         return res.status(204).send();
       }
-      
-      console.log(`Serving document: ${schedule.documentName}, ${schedule.documentMimeType}, Size: ${schedule.documentData.length} bytes`);
-      
+
+      console.log(
+        `Serving document: ${schedule.documentName}, ${schedule.documentMimeType}, Size: ${schedule.documentData.length} bytes`
+      );
+
       // Set appropriate headers for the document
       res.set({
-        'Content-Type': schedule.documentMimeType || 'application/octet-stream',
-        'Content-Disposition': `inline; filename="${schedule.documentName || 'schedule-document'}"`,
-        'Content-Length': schedule.documentData.length,
+        "Content-Type": schedule.documentMimeType || "application/octet-stream",
+        "Content-Disposition": `inline; filename="${
+          schedule.documentName || "schedule-document"
+        }"`,
+        "Content-Length": schedule.documentData.length,
       });
-      
+
       // Send the binary data
       return res.send(schedule.documentData);
     } catch (error) {
@@ -123,35 +153,47 @@ export class SchedulesController {
     }
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT, AdminRole.ENSEIGNANT)
+  @Roles(
+    AdminRole.SECRETAIRE,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.ENSEIGNANT
+  )
   async update(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateScheduleDto: UpdateScheduleDto
   ): Promise<Schedule> {
     return this.scheduleService.update(id, updateScheduleDto);
   }
-  
-  @Patch(':id/update-document')
+
+  @Patch(":id/update-document")
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT, AdminRole.ENSEIGNANT)
-  @UseInterceptors(FileInterceptor('document'))
+  @Roles(
+    AdminRole.SECRETAIRE,
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.ENSEIGNANT
+  )
+  @UseInterceptors(FileInterceptor("document"))
   async updateWithDocument(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateScheduleDto: UpdateScheduleDto,
     @UploadedFile() document: Express.Multer.File
   ): Promise<Schedule> {
     if (!document) {
-      throw new BadRequestException('No file uploaded');
+      throw new BadRequestException("No file uploaded");
     }
-    return this.scheduleService.updateWithDocument(id, updateScheduleDto, document);
+    return this.scheduleService.updateWithDocument(
+      id,
+      updateScheduleDto,
+      document
+    );
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(RolesGuard)
   @Roles(AdminRole.SECRETAIRE, AdminRole.CHEF_DE_DEPARTEMENT)
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param("id") id: string): Promise<void> {
     return this.scheduleService.remove(id);
   }
 }

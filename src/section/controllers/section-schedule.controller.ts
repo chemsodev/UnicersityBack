@@ -39,7 +39,10 @@ export class SectionScheduleController {
   @Roles(
     AdminRole.SECRETAIRE,
     AdminRole.CHEF_DE_DEPARTEMENT,
-    AdminRole.ENSEIGNANT
+    AdminRole.ENSEIGNANT,
+    AdminRole.DOYEN,
+    AdminRole.VICE_DOYEN,
+    AdminRole.CHEF_DE_SPECIALITE
   )
   @UseInterceptors(FileInterceptor("document"))
   async uploadSectionSchedule(
