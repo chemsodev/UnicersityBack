@@ -40,7 +40,9 @@ export class ScheduleService {
 
     // Create new schedule
     const schedule = this.scheduleRepository.create(dtoWithoutId);
-    const savedSchedule = await this.scheduleRepository.save(schedule);
+    const savedSchedule = (await this.scheduleRepository.save(
+      schedule
+    )) as unknown as Schedule;
 
     // Notify students in the section about the new schedule
     await this.notifyStudentsOfScheduleChange(
@@ -83,7 +85,9 @@ export class ScheduleService {
       documentMimeType: documentFile.mimetype,
     });
 
-    const savedSchedule = await this.scheduleRepository.save(schedule);
+    const savedSchedule = (await this.scheduleRepository.save(
+      schedule
+    )) as unknown as Schedule;
 
     // Notify students in the section about the new schedule
     await this.notifyStudentsOfScheduleChange(
