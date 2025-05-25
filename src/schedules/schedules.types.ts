@@ -1,4 +1,4 @@
 export enum ScheduleType {
-  REGULAR = 'regular',
-  EXAM = 'exam'
+  REGULAR = "regular",
+  EXAM = "exam",
 }
