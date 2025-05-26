@@ -16,7 +16,8 @@ export class SectionScheduleService {
    */
   async findBySection(sectionId: string): Promise<Schedule[]> {
     return this.scheduleRepository.find({
-      where: { section: { id: sectionId } },
+      where: { sectionId: sectionId },
+      relations: ["uploadedBy"],
       order: { createdAt: "DESC" },
     });
   }
@@ -30,9 +31,10 @@ export class SectionScheduleService {
   ): Promise<Schedule[]> {
     return this.scheduleRepository.find({
       where: {
-        section: { id: sectionId },
+        sectionId: sectionId,
         scheduleType: type,
       },
+      relations: ["uploadedBy"],
       order: { createdAt: "DESC" },
     });
   }
@@ -42,7 +44,8 @@ export class SectionScheduleService {
    */
   async findLatestBySection(sectionId: string): Promise<Schedule | null> {
     return this.scheduleRepository.findOne({
-      where: { section: { id: sectionId } },
+      where: { sectionId: sectionId },
+      relations: ["uploadedBy"],
       order: { createdAt: "DESC" },
     });
   }

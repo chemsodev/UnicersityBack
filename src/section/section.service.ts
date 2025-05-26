@@ -129,13 +129,21 @@ export class SectionService {
     }
     return section.etudiants;
   }
-  async findGroups(id: string): Promise<Groupe[]> {
-    console.log(`[Section Service] Finding groups for section ID: ${id}`);
+  async findGroups(id: string, type?: string): Promise<Groupe[]> {
+    console.log(
+      `[Section Service] Finding groups for section ID: ${id}, type: ${type}`
+    );
     try {
-      const groups = await this.groupeRepo.find({
-        where: { section: { id } },
-        relations: ["section"],
-      });
+      const query = this.groupeRepo
+        .createQueryBuilder("groupe")
+        .leftJoinAndSelect("groupe.section", "section")
+        .where("section.id = :id", { id });
+
+      if (type) {
+        query.andWhere("groupe.type = :type", { type });
+      }
+
+      const groups = await query.getMany();
 
       console.log(
         `[Section Service] Found ${groups.length} groups for section ${id}`

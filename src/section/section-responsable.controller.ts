@@ -25,15 +25,22 @@ export class SectionResponsableController {
 
   @Post(":sectionId/responsables")
   @UseGuards(RolesGuard)
-  @Roles(AdminRole.CHEF_DE_DEPARTEMENT, AdminRole.VICE_DOYEN, AdminRole.DOYEN)
+  @Roles(
+    AdminRole.CHEF_DE_DEPARTEMENT,
+    AdminRole.VICE_DOYEN,
+    AdminRole.DOYEN,
+    AdminRole.SECRETAIRE
+  )
   async assignResponsable(
     @Param("sectionId") sectionId: string,
     @Body() assignDto: AssignResponsableDto
   ) {
+    console.log(`Controller received assignment request:`, assignDto);
     return this.sectionResponsableService.assignResponsable(
       sectionId,
       assignDto.enseignantId,
-      assignDto.role
+      assignDto.role,
+      assignDto.groupId
     );
   }
 

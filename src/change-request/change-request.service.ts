@@ -156,7 +156,13 @@ export class ChangeRequestService {
   ): Promise<ChangeRequest> {
     const request = await this.requestRepo.findOne({
       where: { id },
-      relations: ["etudiant"],
+      relations: [
+        "etudiant",
+        "currentSection",
+        "requestedSection",
+        "currentGroupe",
+        "requestedGroupe",
+      ],
     });
 
     if (!request) throw new NotFoundException("Request not found");
@@ -253,66 +259,214 @@ export class ChangeRequestService {
   private async applyApprovedRequest(request: ChangeRequest): Promise<void> {
     const entityId = toNumberOrStringId(request.studentId);
 
-    const student = await this.etudiantRepo.findOne({
-      where: { id: entityId as any },
-      relations: ["sections", "tdGroupe", "tpGroupe"],
-    });
+    // Use a transaction to ensure atomicity
+    const queryRunner =
+      this.etudiantRepo.manager.connection.createQueryRunner();
 
-    if (!student) {
-      throw new NotFoundException("Student not found");
-    }
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Apply changes based on request type
-    switch (request.requestType) {
-      case RequestType.SECTION:
-        if (request.requestedSection) {
-          // Update student's sections relation
-          // First, fetch the requested section
-          const newSection = await this.sectionRepo.findOneBy({
-            id: request.requestedSection.id,
-          });
-          if (newSection) {
-            // Replace or add the section
-            if (!student.sections) {
-              student.sections = [newSection];
-            } else {
-              // Remove current section if exists
-              student.sections = student.sections.filter(
-                (section) => section.id !== request.currentSection?.id
+    try {
+      const student = await queryRunner.manager.findOne(Etudiant, {
+        where: { id: entityId as any },
+        relations: ["sections", "tdGroupe", "tpGroupe"],
+      });
+
+      if (!student) {
+        throw new NotFoundException("Student not found");
+      }
+
+      console.log(
+        `[Section Change] Processing section change for student ${student.id}`
+      );
+      console.log(
+        `[Section Change] Current sections:`,
+        student.sections?.map((s) => s.name) || "none"
+      );
+      console.log(
+        `[Section Change] Changing from: ${request.currentSection?.name} to: ${request.requestedSection?.name}`
+      );
+
+      // Apply changes based on request type
+      switch (request.requestType) {
+        case RequestType.SECTION:
+          if (request.requestedSection) {
+            // Fetch the requested section with full relations
+            const newSection = await queryRunner.manager.findOne(Section, {
+              where: { id: request.requestedSection.id },
+              relations: ["department"],
+            });
+
+            if (newSection) {
+              // Use the working approach from SectionService
+              console.log(
+                `[Section Change] Using SectionService approach - working from section side`
               );
-              // Add new section
-              student.sections.push(newSection);
+
+              // First, remove student from old section if exists
+              if (request.currentSection) {
+                const oldSection = await queryRunner.manager.findOne(Section, {
+                  where: { id: request.currentSection.id },
+                  relations: ["etudiants"],
+                });
+
+                if (oldSection && oldSection.etudiants) {
+                  // Convert IDs to strings for comparison
+                  oldSection.etudiants = oldSection.etudiants.filter(
+                    (e) => String(e.id) !== String(student.id)
+                  );
+                  await queryRunner.manager.save(Section, oldSection);
+                  console.log(
+                    `[Section Change] Removed student from old section: ${oldSection.name}`
+                  );
+                }
+              }
+
+              // Then, add student to new section
+              const targetSection = await queryRunner.manager.findOne(Section, {
+                where: { id: newSection.id },
+                relations: ["etudiants"],
+              });
+
+              if (targetSection) {
+                // Check if student already exists in the section
+                const studentExists = targetSection.etudiants?.some(
+                  (e) => String(e.id) === String(student.id)
+                );
+
+                if (!studentExists) {
+                  if (!targetSection.etudiants) {
+                    targetSection.etudiants = [];
+                  }
+                  targetSection.etudiants.push(student);
+                  await queryRunner.manager.save(Section, targetSection);
+                  console.log(
+                    `[Section Change] Added student to new section: ${targetSection.name}`
+                  );
+                }
+              }
+
+              // Automatically assign student to TD/TP groups from the new section
+              console.log(
+                `[Section Change] Assigning student to groups in new section: ${targetSection.name}`
+              );
+
+              // Find available TD group in the new section
+              const availableTdGroups = await queryRunner.manager.find(Groupe, {
+                where: {
+                  section: { id: targetSection.id },
+                  type: "td" as any,
+                },
+                relations: ["section"],
+              });
+
+              // Find available TP group in the new section
+              const availableTpGroups = await queryRunner.manager.find(Groupe, {
+                where: {
+                  section: { id: targetSection.id },
+                  type: "tp" as any,
+                },
+                relations: ["section"],
+              });
+
+              let newTdGroupId = null;
+              let newTpGroupId = null;
+
+              // Assign to first available TD group (could implement load balancing later)
+              if (availableTdGroups.length > 0) {
+                newTdGroupId = availableTdGroups[0].id;
+                console.log(
+                  `[Section Change] Assigning to TD group: ${availableTdGroups[0].name}`
+                );
+              } else {
+                console.log(
+                  `[Section Change] No TD groups available in new section`
+                );
+              }
+
+              // Assign to first available TP group
+              if (availableTpGroups.length > 0) {
+                newTpGroupId = availableTpGroups[0].id;
+                console.log(
+                  `[Section Change] Assigning to TP group: ${availableTpGroups[0].name}`
+                );
+              } else {
+                console.log(
+                  `[Section Change] No TP groups available in new section`
+                );
+              }
+
+              // Update student's group assignments via direct SQL
+              await queryRunner.manager.query(
+                `UPDATE "users" SET td_groupe_id = $2, tp_groupe_id = $3 WHERE id = $1`,
+                [student.id, newTdGroupId, newTpGroupId]
+              );
+              console.log(
+                `[Section Change] Updated student groups: TD=${
+                  newTdGroupId ? "assigned" : "none"
+                }, TP=${newTpGroupId ? "assigned" : "none"}`
+              );
             }
           }
-        }
-        break;
+          break;
 
-      case RequestType.GROUPE_TD:
-        if (request.requestedGroupe) {
-          // Update student's TD groupe relation
-          student.tdGroupe = request.requestedGroupe;
-        }
-        break;
+        case RequestType.GROUPE_TD:
+          if (request.requestedGroupe) {
+            student.tdGroupe = request.requestedGroupe;
+            await queryRunner.manager.save(Etudiant, student);
+          }
+          break;
 
-      case RequestType.GROUPE_TP:
-        if (request.requestedGroupe) {
-          // Update student's TP groupe relation
-          student.tpGroupe = request.requestedGroupe;
-        }
-        break;
+        case RequestType.GROUPE_TP:
+          if (request.requestedGroupe) {
+            student.tpGroupe = request.requestedGroupe;
+            await queryRunner.manager.save(Etudiant, student);
+          }
+          break;
+      }
+
+      // Verify the change by reloading the student
+      const verificationStudent = await queryRunner.manager.findOne(Etudiant, {
+        where: { id: entityId as any },
+        relations: ["sections"],
+      });
+      console.log(
+        `[Section Change] Verification - student sections after save:`,
+        verificationStudent?.sections?.map((s) => s.name) || "none"
+      );
+
+      // Commit the transaction
+      await queryRunner.commitTransaction();
+      console.log(`✅ [Section Change] Transaction committed successfully`);
+    } catch (error) {
+      // Rollback the transaction on error
+      await queryRunner.rollbackTransaction();
+      console.error(
+        `❌ [Section Change] Transaction rolled back due to error:`,
+        error
+      );
+      throw new BadRequestException(
+        `Failed to apply section change: ${error.message}`
+      );
+    } finally {
+      // Release the query runner
+      await queryRunner.release();
     }
 
-    await this.etudiantRepo.save(student);
-
-    // Send notification about the change
+    // Send notification about the change (outside transaction)
     await this.notificationsService.create({
       title: `Changement effectué`,
-      content: `Votre demande ${request.requestNumber} a été approuvée et les changements ont été appliqués.`,
+      content: `Votre demande ${request.requestNumber} a été approuvée et les changements ont été appliqués à votre profil.`,
       type: NotificationType.ADMIN,
-      userId: student.id,
-      actionLink: null,
-      actionLabel: null,
+      userId: request.studentId,
+      actionLink: `profile.html`,
+      actionLabel: "Voir profil",
     });
+
+    // Log the successful change for audit purposes
+    console.log(
+      `✅ [Section Change] Successfully applied section change for student ${request.studentId}: ${request.currentSection?.name} -> ${request.requestedSection?.name}`
+    );
   }
 
   // Get group by ID for validation

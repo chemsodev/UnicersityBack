@@ -26,8 +26,13 @@ export class SectionResponsableService {
   async assignResponsable(
     sectionId: string,
     enseignantId: number,
-    role: ResponsableRole
+    role: ResponsableRole,
+    groupId?: number
   ): Promise<SectionResponsable> {
+    console.log(
+      `Assigning responsable: Section=${sectionId}, Teacher=${enseignantId}, Role=${role}, Group=${groupId}`
+    );
+
     // Validate section exists
     const section = await this.sectionRepo.findOneBy({ id: sectionId });
     if (!section) {
@@ -57,6 +62,7 @@ export class SectionResponsableService {
       // Update the existing assignment
       existingResponsable.enseignant = enseignant;
       existingResponsable.assignedAt = new Date();
+      console.log(`Updated existing assignment: ${existingResponsable.id}`);
       return this.responsableRepo.save(existingResponsable);
     } else {
       // Create a new assignment
@@ -65,7 +71,10 @@ export class SectionResponsableService {
         enseignant: { id: enseignantId } as Enseignant,
         role,
       });
-      return this.responsableRepo.save(newResponsable);
+      console.log(`Creating new assignment for section ${sectionId}`);
+      const saved = await this.responsableRepo.save(newResponsable);
+      console.log(`Successfully created assignment: ${saved.id}`);
+      return saved;
     }
   }
 
