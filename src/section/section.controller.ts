@@ -53,10 +53,12 @@ export class SectionController {
     return this.sectionService.findStudents(id);
   }
   @Get(":id/groupes")
-  async findGroups(@Param("id") id: string) {
-    console.log(`[Section Controller] Finding groups for section ID: ${id}`);
+  async findGroups(@Param("id") id: string, @Query("type") type?: string) {
+    console.log(
+      `[Section Controller] Finding groups for section ID: ${id}, type: ${type}`
+    );
     try {
-      const groups = await this.sectionService.findGroups(id);
+      const groups = await this.sectionService.findGroups(id, type);
       console.log(
         `[Section Controller] Found ${groups.length} groups for section ${id}`
       );

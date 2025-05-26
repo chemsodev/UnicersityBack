@@ -223,8 +223,7 @@ export class EnseignantService {
     // Validate that the enseignant exists
     await this.findOne(id);
 
-    // Instead of querying by uploadedById which doesn't exist,
-    // we'll get all schedules and then filter by section
+    // Get teacher's sections with their assignments
     const teacherSections = await this.getSectionsResponsable(id);
 
     if (!teacherSections || teacherSections.length === 0) {
@@ -233,13 +232,105 @@ export class EnseignantService {
 
     const sectionIds = teacherSections.map((section) => section.id);
 
-    // Get schedules by sectionIds instead
-    return this.scheduleRepository.find({
+    // Get schedules by sectionIds with enhanced relations
+    const schedules = await this.scheduleRepository.find({
       where: {
         sectionId: In(sectionIds),
       },
-      relations: ["section"],
+      relations: ["section", "section.department"],
+      order: { createdAt: "DESC" },
     });
+
+    // Enhance schedules with section information
+    return schedules.map((schedule) => ({
+      ...schedule,
+      sectionInfo: {
+        name: schedule.section?.name,
+        code: schedule.section?.code,
+        level: schedule.section?.level,
+        department: schedule.section?.department?.name,
+        specialty: schedule.section?.specialty,
+      },
+    }));
+  }
+
+  async getSchedulesBySection(
+    teacherId: number,
+    sectionId: string
+  ): Promise<Schedule[]> {
+    // Validate that the teacher has access to this section
+    const teacherSections = await this.getSectionsResponsable(teacherId);
+    const hasAccess = teacherSections.some(
+      (section) => section.id === sectionId
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenException(
+        "You don't have access to this section's schedules"
+      );
+    }
+
+    // Get schedules for the specific section
+    return this.scheduleRepository.find({
+      where: { sectionId },
+      relations: ["section"],
+      order: { createdAt: "DESC" },
+    });
+  }
+
+  async getTeacherAssignmentDetails(id: number): Promise<any> {
+    // Get teacher with basic info
+    const teacher = await this.findOne(id);
+
+    // Get sections where teacher is responsible
+    const sections = await this.getSectionsResponsable(id);
+
+    // Get detailed assignment information
+    const assignments = await this.sectionResponsableRepository.find({
+      where: { enseignant: { id } },
+      relations: ["section", "section.department"],
+    });
+
+    // Group assignments by role and section
+    const assignmentsBySection = {};
+    assignments.forEach((assignment) => {
+      const sectionId = assignment.section.id;
+      if (!assignmentsBySection[sectionId]) {
+        assignmentsBySection[sectionId] = {
+          section: assignment.section,
+          roles: [],
+        };
+      }
+
+      assignmentsBySection[sectionId].roles.push({
+        role: assignment.role,
+      });
+    });
+
+    return {
+      teacher: {
+        id: teacher.id,
+        firstName: teacher.firstName,
+        lastName: teacher.lastName,
+        email: teacher.email,
+        matricule: teacher.matricule,
+      },
+      sections: sections.map((section) => ({
+        id: section.id,
+        name: section.name,
+        code: section.code,
+        level: section.level,
+        department: section.department?.name,
+        specialty: section.specialty,
+        studentCount: section.etudiants?.length || 0,
+        assignments: assignmentsBySection[section.id]?.roles || [],
+      })),
+      totalSections: sections.length,
+      totalStudents: sections.reduce(
+        (sum, section) => sum + (section.etudiants?.length || 0),
+        0
+      ),
+    };
   }
 
   async getSectionsResponsable(id: number): Promise<Section[]> {
